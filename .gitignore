@@ -9,6 +9,7 @@ backend/*/obj/
 backend/**/*.user
 backend/**/*.suo
 backend/.vs/
+backend/.idea/
 
 # Node / Expo
 mobile/node_modules/
@@ -20,3 +21,4 @@ mobile/web-build/
 # General
 .DS_Store
 *.log
+**/.idea/

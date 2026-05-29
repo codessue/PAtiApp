@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Pati",
+    "slug": "pati",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF6F0"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pati.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Kedinizin fotoğrafını çekmek için kamera erişimi gerekiyor.",
+        "NSPhotoLibraryUsageDescription": "Kedinizin fotoğrafını seçmek için galeri erişimi gerekiyor."
+      }
+    },
+    "android": {
+      "package": "com.pati.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF6F0",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C4622D"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kedinizin fotoğrafını seçmek için galeri erişimi isteniyor."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "pati-mvp"
+      }
+    }
+  }
+}

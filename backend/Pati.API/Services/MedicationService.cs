@@ -114,19 +114,25 @@ public class MedicationService(IUnitOfWork uow, AppDbContext context)
                 && (m.EndDate == null || m.EndDate >= today))
             .ToListAsync();
 
-        return meds.SelectMany(m => m.ReminderTimes.Select(time =>
-        {
-            var todayLogs = context.MedicationLogs
-                .Where(l => l.MedicationId == m.Id
-                    && l.ScheduledTime.Date == DateTime.UtcNow.Date)
-                .OrderByDescending(l => l.ScheduledTime)
-                .FirstOrDefault();
+        var medIds = meds.Select(m => m.Id).ToList();
+        var dayStart = DateTime.UtcNow.Date;
+        var dayEnd = dayStart.AddDays(1);
 
-            return new TodayMedicationDto(
+        var todayLogs = await context.MedicationLogs
+            .Where(l => medIds.Contains(l.MedicationId)
+                && l.ScheduledTime >= dayStart
+                && l.ScheduledTime < dayEnd)
+            .ToListAsync();
+
+        var latestStatusByMed = todayLogs
+            .GroupBy(l => l.MedicationId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.ScheduledTime).First().Status);
+
+        return meds.SelectMany(m => m.ReminderTimes.Select(time =>
+            new TodayMedicationDto(
                 m.Id, m.CatId, m.Cat.Name, m.Name, time,
-                todayLogs?.Status ?? "pending"
-            );
-        }));
+                latestStatusByMed.TryGetValue(m.Id, out var status) ? status : "pending"
+            )));
     }
 
     private async Task EnsureCatOwnership(Guid catId, Guid userId)

@@ -12,10 +12,11 @@ import {
   DMSans_300Light,
   DMSans_400Regular,
   DMSans_500Medium,
+  DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
-import { ActivityIndicator, View } from 'react-native';
 import { Navigation } from './src/app/Navigation';
 import { colors } from './src/constants/colors';
+import { Splash } from './src/components/ui/Splash';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,14 +35,11 @@ export default function App() {
     DMSans_300Light,
     DMSans_400Regular,
     DMSans_500Medium,
+    DMSans_700Bold,
   });
 
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
+    return <Splash />;
   }
 
   return (

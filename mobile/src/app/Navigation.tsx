@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { HeartPulse, Home as HomeIcon, LucideIcon, PawPrint, User } from 'lucide-react-native';
 import { useAuthStore } from '../stores/authStore';
 import { registerPushToken } from '../utils/notifications';
 import { colors } from '../constants/colors';
+import { fonts } from '../constants/typography';
+import { Splash } from '../components/ui/Splash';
 import { LoginScreen } from './auth/login';
 import { RegisterScreen } from './auth/register';
 import { HomeScreen } from './tabs/index';
@@ -53,12 +55,26 @@ const Stack = createStackNavigator<RootStackParamList>();
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TAB_ICONS: Record<string, string> = {
-  Home: '🏠', Cats: '🐱', Health: '❤️', Profile: '👤',
+// BottomNav styling per UI_REDESIGN_1.md §3.
+// Maps tab routes → lucide icon + Turkish label.
+const TAB_META: Record<keyof TabParamList, { icon: LucideIcon; label: string }> = {
+  Home:    { icon: HomeIcon,    label: 'Ana Sayfa' },
+  Cats:    { icon: PawPrint,    label: 'Kediler' },
+  Health:  { icon: HeartPulse,  label: 'Sağlık' },
+  Profile: { icon: User,        label: 'Profil' },
 };
 
-const TAB_LABELS: Record<string, string> = {
-  Home: 'Ana Sayfa', Cats: 'Kediler', Health: 'Sağlık', Profile: 'Profil',
+const TabBarIcon = ({ name, focused }: { name: keyof TabParamList; focused: boolean }) => {
+  const Icon = TAB_META[name].icon;
+  return (
+    <View style={[tabStyles.iconWrap, focused && tabStyles.iconWrapActive]}>
+      <Icon
+        size={22}
+        color={focused ? colors.primary : colors.mutedForeground}
+        strokeWidth={focused ? 2.5 : 2}
+      />
+    </View>
+  );
 };
 
 const MainTabs = () => (
@@ -66,19 +82,13 @@ const MainTabs = () => (
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: colors.textMuted,
-      tabBarStyle: {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        paddingBottom: 8,
-        paddingTop: 4,
-        height: 64,
-      },
-      tabBarLabel: TAB_LABELS[route.name] ?? route.name,
+      tabBarInactiveTintColor: colors.mutedForeground,
+      tabBarStyle: tabStyles.bar,
+      tabBarItemStyle: tabStyles.item,
+      tabBarLabelStyle: tabStyles.label,
+      tabBarLabel: TAB_META[route.name as keyof TabParamList].label,
       tabBarIcon: ({ focused }) => (
-        <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>
-          {TAB_ICONS[route.name]}
-        </Text>
+        <TabBarIcon name={route.name as keyof TabParamList} focused={focused} />
       ),
     })}
   >
@@ -88,6 +98,36 @@ const MainTabs = () => (
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
 );
+
+const tabStyles = StyleSheet.create({
+  bar: {
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    height: 88, // includes safe-area space on most devices
+    paddingTop: 8,
+    paddingBottom: 24,
+    // flatten any default platform shadow so the border alone separates the bar
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  item: { paddingVertical: 4 },
+  label: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  iconWrap: {
+    width: 36,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: 'rgba(196,98,45,0.2)',
+  },
+});
 
 const AuthNavigator = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
@@ -118,12 +158,7 @@ export const Navigation = () => {
   }, [isAuthenticated]);
 
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <Text style={{ fontSize: 48 }}>🐾</Text>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
-      </View>
-    );
+    return <Splash />;
   }
 
   return (

@@ -3,17 +3,23 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   TouchableOpacityProps,
   View,
+  ViewStyle,
 } from 'react-native';
 import { colors } from '../../constants/colors';
-import { radius, spacing } from '../../constants/typography';
+import { fonts, radius, spacing } from '../../constants/typography';
+
+type Variant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+type Size = 'sm' | 'md';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: Variant;
+  /** `md` (default) = 52px tall per spec. `sm` = compact 36px used in inline toolbars. */
+  size?: Size;
   loading?: boolean;
   icon?: React.ReactNode;
 }
@@ -29,58 +35,88 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const isDisabled = disabled || loading;
+  const v = VARIANTS[variant];
+  const s = SIZES[size];
 
   return (
     <TouchableOpacity
-      activeOpacity={0.75}
+      activeOpacity={0.85}
       disabled={isDisabled}
-      style={[styles.base, styles[variant], styles[`size_${size}`], isDisabled && styles.disabled, style]}
+      style={[styles.base, v.container, s.container, isDisabled && styles.disabled, style]}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.primary} size="small" />
+        <ActivityIndicator color={v.text.color as string} size="small" />
       ) : (
-        <View style={styles.content}>
-          {icon && <View style={styles.iconWrapper}>{icon}</View>}
-          <Text style={[styles.text, styles[`text_${variant}`], styles[`textSize_${size}`]]}>
-            {title}
-          </Text>
+        <View style={styles.row}>
+          {icon ? <View style={styles.icon}>{icon}</View> : null}
+          <Text style={[styles.text, v.text, s.text]}>{title}</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 };
 
+// --- variants ---------------------------------------------------------------
+// Spec: UI_REDESIGN_1.md §3 — Button.
+const VARIANTS: Record<Variant, { container: ViewStyle; text: TextStyle }> = {
+  primary: {
+    container: {
+      backgroundColor: colors.primary,
+      // soft primary-tinted shadow
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    text: { color: colors.primaryForeground },
+  },
+  secondary: {
+    container: { backgroundColor: colors.secondary },
+    text: { color: colors.secondaryForeground },
+  },
+  outline: {
+    container: {
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    text: { color: colors.foreground },
+  },
+  danger: {
+    container: {
+      backgroundColor: 'rgba(217,79,61,0.08)',
+      borderWidth: 2,
+      borderColor: 'rgba(217,79,61,0.15)',
+    },
+    text: { color: colors.destructive },
+  },
+  ghost: {
+    container: { backgroundColor: 'transparent' },
+    text: { color: colors.mutedForeground },
+  },
+};
+
+const SIZES: Record<Size, { container: ViewStyle; text: TextStyle }> = {
+  md: {
+    container: { height: 52, paddingHorizontal: spacing.xl, borderRadius: radius.lg },
+    text: { fontSize: 17 },
+  },
+  sm: {
+    container: { height: 36, paddingHorizontal: spacing.md, borderRadius: radius.md },
+    text: { fontSize: 14 },
+  },
+};
+
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
+    alignSelf: 'stretch', // full-width by default per spec
   },
-  content: { flexDirection: 'row', alignItems: 'center' },
-  iconWrapper: { marginRight: spacing.sm },
-
-  primary: { backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.secondary },
-  outline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.primary },
-  ghost: { backgroundColor: 'transparent' },
-  danger: { backgroundColor: colors.danger },
-
-  size_sm: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 36 },
-  size_md: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
-  size_lg: { paddingHorizontal: spacing['2xl'], paddingVertical: spacing.lg },
-
-  text: { fontFamily: 'DMSans_500Medium', fontSize: 15 },
-  text_primary: { color: '#fff' },
-  text_secondary: { color: '#fff' },
-  text_outline: { color: colors.primary },
-  text_ghost: { color: colors.primary },
-  text_danger: { color: '#fff' },
-
-  textSize_sm: { fontSize: 13 },
-  textSize_md: { fontSize: 15 },
-  textSize_lg: { fontSize: 16 },
-
+  row: { flexDirection: 'row', alignItems: 'center' },
+  icon: { marginRight: spacing.sm },
+  text: { fontFamily: fonts.sansBold },
   disabled: { opacity: 0.5 },
 });

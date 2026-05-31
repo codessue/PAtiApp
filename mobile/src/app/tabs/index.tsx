@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,17 +10,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Check, Pill, Plus, Syringe } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
 import { useTodayMedications } from '../../hooks/useMedications';
 import { useCats } from '../../hooks/useCats';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/typography';
+import { fonts, radius, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
-import { UpcomingVaccineCard } from '../../components/vaccines/UpcomingVaccineCard';
-import { formatDayOfWeek } from '../../utils/dateHelpers';
+import {
+  formatDate,
+  formatDayOfWeek,
+  getVaccineUrgencyColor,
+  getVaccineUrgencyLabel,
+} from '../../utils/dateHelpers';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -30,7 +33,7 @@ export const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const { user } = useAuthStore();
-  const { data: cats, isLoading: catsLoading } = useCats();
+  const { data: cats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
   const { data: todayMeds, refetch: refetchMeds, isRefetching: m_refreshing } = useTodayMedications();
 
@@ -40,124 +43,204 @@ export const HomeScreen = () => {
   const completedMeds = todayMeds?.filter((m) => m.status === 'given').length ?? 0;
   const totalMeds = todayMeds?.length ?? 0;
 
+  const topVaccine = upcoming?.[0];
+  const alertColor = topVaccine ? getVaccineUrgencyColor(topVaccine.daysUntilDue) : colors.warning;
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
+      {/* Greeting */}
       <View style={styles.greeting}>
-        <View>
+        <View style={styles.greetingText}>
           <Text style={styles.hello}>Merhaba, {user?.name?.split(' ')[0]} 🌿</Text>
           <Text style={styles.date}>{formatDayOfWeek()}</Text>
         </View>
-        <TouchableOpacity onPress={() => nav.navigate('AddCat')} style={styles.addBtn}>
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
+        <Avatar name={user?.name} size={48} style={styles.greetingAvatar} />
       </View>
 
-      {/* Cat Quick Access */}
-      {!catsLoading && cats && cats.length > 0 && (
-        <View style={styles.section}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={[...cats, null]}
-            keyExtractor={(_, i) => String(i)}
-            contentContainerStyle={styles.catScroll}
-            renderItem={({ item }) =>
-              item ? (
-                <TouchableOpacity
-                  onPress={() => nav.navigate('CatDetail', { catId: item.id })}
-                  style={styles.catChip}
-                >
-                  <Avatar uri={item.photoUrl} name={item.name} size={52} />
-                  <Text style={styles.catChipName} numberOfLines={1}>{item.name}</Text>
-                  {item.latestWeight && (
-                    <Text style={styles.catChipWeight}>{item.latestWeight.toFixed(1)} kg</Text>
-                  )}
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={() => nav.navigate('AddCat')} style={styles.addCatChip}>
-                  <Text style={styles.addCatPlus}>+</Text>
-                  <Text style={styles.catChipName}>Ekle</Text>
-                </TouchableOpacity>
-              )
-            }
-          />
-        </View>
+      {/* Pet carousel */}
+      {cats && cats.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {cats.map((cat, i) => {
+            const active = i === 0;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                activeOpacity={0.85}
+                onPress={() => nav.navigate('CatDetail', { catId: cat.id })}
+                style={[styles.petCard, active ? styles.petCardActive : styles.petCardIdle]}
+              >
+                <Avatar
+                  uri={cat.photoUrl}
+                  name={cat.name}
+                  size={68}
+                  style={active ? styles.petAvatarActive : undefined}
+                />
+                <Text style={[styles.petName, active && styles.petTextActive]} numberOfLines={1}>
+                  {cat.name}
+                </Text>
+                {cat.latestWeight != null && (
+                  <Text style={[styles.petWeight, active && styles.petWeightActive]}>
+                    {cat.latestWeight.toFixed(1)} kg
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => nav.navigate('AddCat')}
+            style={[styles.petCard, styles.petCardAdd]}
+          >
+            <View style={styles.addCircle}>
+              <Plus size={24} color={colors.primary} strokeWidth={2.5} />
+            </View>
+            <Text style={styles.addLabel}>Ekle</Text>
+          </TouchableOpacity>
+        </ScrollView>
       )}
 
-      {/* Upcoming Vaccines */}
-      <Card style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>💉 Yaklaşan Aşılar</Text>
-          {upcoming && upcoming.length > 3 && (
-            <Text style={styles.seeAll}>{upcoming.length} aşı</Text>
-          )}
-        </View>
-        {!upcoming || upcoming.length === 0 ? (
-          <Text style={styles.emptySection}>Yaklaşan aşı yok 🎉</Text>
-        ) : (
-          upcoming.slice(0, 3).map((v) => (
-            <UpcomingVaccineCard key={v.id} vaccine={v} />
-          ))
-        )}
-      </Card>
-
-      {/* Today's Medications */}
-      <Card style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>💊 Bugünkü İlaçlar</Text>
-          {totalMeds > 0 && (
-            <Text style={styles.progress}>{completedMeds}/{totalMeds} tamamlandı</Text>
-          )}
-        </View>
-        {!todayMeds || todayMeds.length === 0 ? (
-          <Text style={styles.emptySection}>Bugün ilaç yok 👍</Text>
-        ) : (
-          todayMeds.map((med, i) => (
-            <View key={i} style={styles.medRow}>
-              <View style={[styles.medStatus, { backgroundColor: med.status === 'given' ? colors.successLight : med.status === 'skipped' ? colors.dangerLight : colors.warningLight }]}>
-                <Text style={{ fontSize: 14 }}>
-                  {med.status === 'given' ? '✅' : med.status === 'skipped' ? '❌' : '⏰'}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.medName}>{med.medicationName}</Text>
-                <Text style={styles.medMeta}>{med.catName} · {med.reminderTime}</Text>
+      {/* Alert card — most urgent upcoming vaccine */}
+      {topVaccine && (
+        <Card style={[styles.alertCard, { borderLeftColor: alertColor }]}>
+          <View style={[styles.alertIcon, { backgroundColor: alertColor + '1A' }]}>
+            <Syringe size={20} color={alertColor} strokeWidth={2.2} />
+          </View>
+          <View style={styles.alertBody}>
+            <View style={styles.alertTitleRow}>
+              <Text style={styles.alertTitle} numberOfLines={1}>
+                {topVaccine.vaccineType} - {topVaccine.catName}
+              </Text>
+              <View style={[styles.alertBadge, { backgroundColor: alertColor }]}>
+                <Text style={styles.alertBadgeText}>{getVaccineUrgencyLabel(topVaccine.daysUntilDue)}</Text>
               </View>
             </View>
-          ))
+            <Text style={styles.alertSub} numberOfLines={1}>
+              {topVaccine.clinicName ?? formatDate(topVaccine.nextDueDate)}
+            </Text>
+          </View>
+        </Card>
+      )}
+
+      {/* Today's medications */}
+      <View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Bugünkü İlaçlar</Text>
+          {totalMeds > 0 && <Text style={styles.seeAll}>Tümünü Gör</Text>}
+        </View>
+
+        {!todayMeds || todayMeds.length === 0 ? (
+          <Card>
+            <Text style={styles.emptySection}>Bugün ilaç yok 👍</Text>
+          </Card>
+        ) : (
+          <Card noPadding>
+            {todayMeds.map((med, i) => {
+              const done = med.status === 'given';
+              return (
+                <View
+                  key={`${med.medicationId}-${med.reminderTime}-${i}`}
+                  style={[styles.medRow, i < todayMeds.length - 1 && styles.medRowDivider]}
+                >
+                  <View style={[styles.medIcon, { backgroundColor: done ? colors.secondaryTint : colors.muted }]}>
+                    <Pill size={20} color={done ? colors.secondary : colors.mutedForeground} strokeWidth={2.2} />
+                  </View>
+                  <View style={styles.medInfo}>
+                    <Text style={styles.medName} numberOfLines={1}>{med.medicationName}</Text>
+                    <Text style={styles.medMeta} numberOfLines={1}>{med.catName} • {med.reminderTime}</Text>
+                  </View>
+                  {done ? (
+                    <View style={styles.medCheckDone}>
+                      <Check size={16} color={colors.secondaryForeground} strokeWidth={3} />
+                    </View>
+                  ) : (
+                    <View style={styles.medCheckPending} />
+                  )}
+                </View>
+              );
+            })}
+          </Card>
         )}
-      </Card>
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing['3xl'] },
+  content: { paddingHorizontal: 24, gap: spacing.xl, paddingBottom: spacing['3xl'] },
+
   greeting: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  hello: { fontFamily: 'Fraunces_700Bold', fontSize: 26, color: colors.text },
-  date: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: colors.textMuted, marginTop: 2, textTransform: 'capitalize' },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { color: '#fff', fontSize: 22, fontFamily: 'DMSans_400Regular' },
-  section: {},
-  catScroll: { gap: spacing.md, paddingRight: spacing.lg },
-  catChip: { alignItems: 'center', width: 72, gap: 4 },
-  catChipName: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: colors.text, textAlign: 'center' },
-  catChipWeight: { fontFamily: 'DMSans_400Regular', fontSize: 10, color: colors.textMuted },
-  addCatChip: { alignItems: 'center', width: 72, gap: 4 },
-  addCatPlus: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primaryLight, textAlign: 'center', lineHeight: 52, fontSize: 24, color: colors.primary, fontFamily: 'DMSans_400Regular' },
-  sectionCard: { gap: spacing.sm },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
-  sectionTitle: { fontFamily: 'Fraunces_600SemiBold', fontSize: 17, color: colors.text },
-  seeAll: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: colors.primary },
-  progress: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: colors.secondary },
-  emptySection: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.md },
-  medRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
-  medStatus: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  medName: { fontFamily: 'DMSans_500Medium', fontSize: 14, color: colors.text },
-  medMeta: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: colors.textMuted },
+  greetingText: { flex: 1 },
+  hello: { fontFamily: fonts.serif, fontSize: 24, color: colors.foreground, letterSpacing: -0.3 },
+  date: { fontFamily: fonts.sans, fontSize: 15, color: colors.mutedForeground, marginTop: 2, textTransform: 'capitalize' },
+  greetingAvatar: { backgroundColor: colors.card, borderWidth: 2, borderColor: colors.primaryTint },
+
+  carousel: { gap: spacing.md, paddingVertical: spacing.xs },
+  petCard: {
+    width: 140,
+    borderRadius: radius['3xl'],
+    padding: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  petCardActive: { backgroundColor: colors.primary },
+  petCardIdle: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  petCardAdd: {
+    backgroundColor: 'rgba(196,98,45,0.05)',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+  },
+  petAvatarActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  petName: { fontFamily: fonts.sansBold, fontSize: 17, color: colors.foreground },
+  petTextActive: { color: colors.primaryForeground },
+  petWeight: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
+  petWeightActive: { color: 'rgba(255,255,255,0.85)' },
+  addCircle: {
+    width: 68, height: 68, borderRadius: 34,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(196,98,45,0.10)',
+  },
+  addLabel: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
+
+  alertCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderLeftWidth: 4 },
+  alertIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  alertBody: { flex: 1, gap: 2 },
+  alertTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  alertTitle: { flex: 1, fontFamily: fonts.sansBold, fontSize: 16, color: colors.foreground },
+  alertBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
+  alertBadgeText: { fontFamily: fonts.sansMedium, fontSize: 11, color: colors.destructiveForeground },
+  alertSub: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+  sectionTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.foreground, letterSpacing: -0.3 },
+  seeAll: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
+  emptySection: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
+
+  medRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
+  medRowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  medIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  medInfo: { flex: 1 },
+  medName: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.foreground },
+  medMeta: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground, marginTop: 1 },
+  medCheckDone: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.secondary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  medCheckPending: {
+    width: 28, height: 28, borderRadius: 14,
+    borderWidth: 2, borderColor: colors.border,
+  },
 });

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/typography';
+import { fonts, spacing } from '../../constants/typography';
 import { WeightLog } from '../../types';
 import { formatShortDate } from '../../utils/dateHelpers';
 
@@ -11,7 +12,8 @@ interface WeightChartProps {
 
 const CHART_HEIGHT = 160;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CHART_WIDTH = SCREEN_WIDTH - spacing.lg * 4;
+// Screen padding (24*2) + card padding (20*2) + y-axis label column (~36).
+const CHART_WIDTH = SCREEN_WIDTH - 24 * 2 - 20 * 2 - 36;
 
 export const WeightChart: React.FC<WeightChartProps> = ({ logs }) => {
   const sorted = [...logs].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)).slice(-10);
@@ -32,9 +34,10 @@ export const WeightChart: React.FC<WeightChartProps> = ({ logs }) => {
   const pointX = (i: number) => (i / (sorted.length - 1)) * CHART_WIDTH;
   const pointY = (w: number) => CHART_HEIGHT - ((w - minW) / range) * CHART_HEIGHT;
 
-  const pathD = sorted
+  const linePath = sorted
     .map((l, i) => `${i === 0 ? 'M' : 'L'} ${pointX(i).toFixed(1)},${pointY(l.weightKg).toFixed(1)}`)
     .join(' ');
+  const areaPath = `${linePath} L ${pointX(sorted.length - 1).toFixed(1)},${CHART_HEIGHT} L ${pointX(0).toFixed(1)},${CHART_HEIGHT} Z`;
 
   return (
     <View style={styles.container}>
@@ -44,27 +47,51 @@ export const WeightChart: React.FC<WeightChartProps> = ({ logs }) => {
         <Text style={styles.yLabel}>{minW.toFixed(1)}</Text>
       </View>
       <View>
-        <View style={styles.chartArea}>
+        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+          <Defs>
+            <LinearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={colors.primary} stopOpacity={0.25} />
+              <Stop offset="1" stopColor={colors.primary} stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+
+          {/* Dashed horizontal grid */}
           {[0, 0.5, 1].map((frac) => (
-            <View
+            <Line
               key={frac}
-              style={[styles.gridLine, { top: frac * CHART_HEIGHT }]}
+              x1={0}
+              y1={frac * CHART_HEIGHT}
+              x2={CHART_WIDTH}
+              y2={frac * CHART_HEIGHT}
+              stroke={colors.border}
+              strokeWidth={1}
+              strokeDasharray="4 4"
             />
           ))}
+
+          <Path d={areaPath} fill="url(#weightFill)" />
+          <Path
+            d={linePath}
+            stroke={colors.primary}
+            strokeWidth={2.5}
+            fill="none"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
           {sorted.map((log, i) => (
-            <View
+            <Circle
               key={log.id}
-              style={[
-                styles.dot,
-                {
-                  left: pointX(i) - 5,
-                  top: pointY(log.weightKg) - 5,
-                  backgroundColor: colors.primary,
-                },
-              ]}
+              cx={pointX(i)}
+              cy={pointY(log.weightKg)}
+              r={4}
+              fill={colors.primary}
+              stroke={colors.card}
+              strokeWidth={1.5}
             />
           ))}
-        </View>
+        </Svg>
+
         <View style={styles.xLabels}>
           {sorted.map((log, i) =>
             i % Math.ceil(sorted.length / 4) === 0 ? (
@@ -87,29 +114,9 @@ const styles = StyleSheet.create({
     paddingRight: spacing.sm,
     width: 36,
   },
-  yLabel: { fontFamily: 'DMSans_400Regular', fontSize: 10, color: colors.textMuted },
-  chartArea: {
-    width: CHART_WIDTH,
-    height: CHART_HEIGHT,
-    position: 'relative',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dot: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  xLabels: { position: 'relative', height: 20, width: CHART_WIDTH },
-  xLabel: { position: 'absolute', fontFamily: 'DMSans_400Regular', fontSize: 10, color: colors.textMuted },
-  empty: { alignItems: 'center', padding: spacing.xl },
-  emptyText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: colors.textMuted },
+  yLabel: { fontFamily: fonts.sans, fontSize: 10, color: colors.mutedForeground },
+  xLabels: { position: 'relative', height: 20, width: CHART_WIDTH, marginTop: 4 },
+  xLabel: { position: 'absolute', fontFamily: fonts.sans, fontSize: 10, color: colors.mutedForeground },
+  empty: { alignItems: 'center', paddingVertical: spacing.xl },
+  emptyText: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
 });

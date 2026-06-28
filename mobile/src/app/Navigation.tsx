@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { HeartPulse, Home as HomeIcon, LucideIcon, PawPrint, User } from 'lucide-react-native';
+import { HeartPulse, Home as HomeIcon, LucideIcon, NotebookPen, PawPrint, User } from 'lucide-react-native';
 import { useAuthStore } from '../stores/authStore';
 import { registerPushToken } from '../utils/notifications';
 import { colors } from '../constants/colors';
@@ -14,6 +14,7 @@ import { RegisterScreen } from './auth/register';
 import { HomeScreen } from './tabs/index';
 import { CatsScreen } from './tabs/cats';
 import { HealthScreen } from './tabs/health';
+import { NotesScreen } from './tabs/notes';
 import { ProfileScreen } from './tabs/profile';
 import { CatDetailScreen } from '../screens/cats/CatDetailScreen';
 import { AddCatScreen } from '../screens/cats/AddCatScreen';
@@ -24,6 +25,7 @@ import { WeightChartScreen } from '../screens/weight/WeightChartScreen';
 import { AddWeightScreen } from '../screens/weight/AddWeightScreen';
 import { MedicationListScreen } from '../screens/medications/MedicationListScreen';
 import { AddMedicationScreen } from '../screens/medications/AddMedicationScreen';
+import { NoteEditorScreen } from '../screens/notes/NoteEditorScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -37,6 +39,7 @@ export type RootStackParamList = {
   AddWeight: { catId: string };
   MedicationList: { catId: string; catName: string };
   AddMedication: { catId: string };
+  NoteEditor: { noteId?: string; catId?: string };
 };
 
 export type AuthStackParamList = {
@@ -48,6 +51,7 @@ export type TabParamList = {
   Home: undefined;
   Cats: undefined;
   Health: undefined;
+  Notes: undefined;
   Profile: undefined;
 };
 
@@ -61,6 +65,7 @@ const TAB_META: Record<keyof TabParamList, { icon: LucideIcon; label: string }> 
   Home:    { icon: HomeIcon,    label: 'Ana Sayfa' },
   Cats:    { icon: PawPrint,    label: 'Kediler' },
   Health:  { icon: HeartPulse,  label: 'Sağlık' },
+  Notes:   { icon: NotebookPen, label: 'Notlar' },
   Profile: { icon: User,        label: 'Profil' },
 };
 
@@ -95,6 +100,7 @@ const MainTabs = () => (
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Cats" component={CatsScreen} />
     <Tab.Screen name="Health" component={HealthScreen} />
+    <Tab.Screen name="Notes" component={NotesScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
 );
@@ -186,6 +192,7 @@ export const Navigation = () => {
             <Stack.Screen name="AddWeight" component={AddWeightScreen} options={{ title: 'Kilo Ekle' }} />
             <Stack.Screen name="MedicationList" component={MedicationListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · İlaçlar` })} />
             <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'İlaç Ekle' }} />
+            <Stack.Screen name="NoteEditor" component={NoteEditorScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

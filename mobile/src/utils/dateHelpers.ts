@@ -17,6 +17,17 @@ export const formatDayOfWeek = (): string =>
 export const formatApiDate = (date: Date): string =>
   format(date, 'yyyy-MM-dd');
 
+export const formatDateTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return format(d, "d MMM yyyy, HH:mm", { locale: tr });
+};
+
+// Friendly relative label for a future reminder, e.g. "yarın 14:00" feel.
+export const formatRelativeDateTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return `${formatDistance(d, new Date(), { locale: tr, addSuffix: true })} · ${format(d, 'HH:mm', { locale: tr })}`;
+};
+
 export const getCatAge = (birthDate?: string): string => {
   if (!birthDate) return 'Yaş bilinmiyor';
   const birth = parseISO(birthDate);

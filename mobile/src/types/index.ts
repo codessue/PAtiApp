@@ -73,6 +73,24 @@ export interface TodayMedication {
   status: 'given' | 'skipped' | 'pending';
 }
 
+export type NoteCategory = 'general' | 'health' | 'behavior' | 'diet' | 'vet';
+
+export interface Note {
+  id: string;
+  /** Optional link to a cat. When undefined, the note is general. */
+  catId?: string;
+  category: NoteCategory;
+  title: string;
+  body: string;
+  /** ISO datetime. When set & in the future, a local reminder notification fires. */
+  reminderAt?: string;
+  /** expo-notifications id for the scheduled reminder, so it can be cancelled. */
+  notificationId?: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -8,14 +8,15 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Check, Pill, Plus, Syringe } from 'lucide-react-native';
+import { Bell, Check, ChevronRight, Pill, Plus, Syringe } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
 import { useTodayMedications } from '../../hooks/useMedications';
 import { useCats } from '../../hooks/useCats';
+import { useNotesStore } from '../../stores/notesStore';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
@@ -23,6 +24,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import {
   formatDate,
   formatDayOfWeek,
+  formatRelativeDateTime,
   getVaccineUrgencyColor,
   getVaccineUrgencyLabel,
 } from '../../utils/dateHelpers';
@@ -36,9 +38,23 @@ export const HomeScreen = () => {
   const { data: cats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
   const { data: todayMeds, refetch: refetchMeds, isRefetching: m_refreshing } = useTodayMedications();
+  const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
+
+  useEffect(() => { if (!notesLoaded) loadNotes(); }, [notesLoaded, loadNotes]);
+  // Refresh reminders whenever Home regains focus (e.g. after adding a note).
+  useFocusEffect(React.useCallback(() => { loadNotes(); }, [loadNotes]));
+
+  const upcomingReminders = useMemo(
+    () =>
+      [...notes]
+        .filter((n) => n.reminderAt && new Date(n.reminderAt).getTime() > Date.now())
+        .sort((a, b) => a.reminderAt!.localeCompare(b.reminderAt!))
+        .slice(0, 3),
+    [notes]
+  );
 
   const refreshing = v_refreshing || m_refreshing;
-  const onRefresh = () => { refetchVaccines(); refetchMeds(); };
+  const onRefresh = () => { refetchVaccines(); refetchMeds(); loadNotes(); };
 
   const completedMeds = todayMeds?.filter((m) => m.status === 'given').length ?? 0;
   const totalMeds = todayMeds?.length ?? 0;
@@ -171,6 +187,48 @@ export const HomeScreen = () => {
           </Card>
         )}
       </View>
+
+      {/* Note reminders */}
+      <View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Hatırlatıcılar</Text>
+          <TouchableOpacity onPress={() => nav.navigate('Notes' as never)} activeOpacity={0.7}>
+            <Text style={styles.seeAll}>Notlar</Text>
+          </TouchableOpacity>
+        </View>
+
+        {upcomingReminders.length === 0 ? (
+          <TouchableOpacity activeOpacity={0.85} onPress={() => nav.navigate('NoteEditor', {})}>
+            <Card style={styles.reminderEmpty}>
+              <View style={styles.reminderEmptyIcon}>
+                <Bell size={18} color={colors.primary} strokeWidth={2.2} />
+              </View>
+              <Text style={styles.reminderEmptyText}>Yaklaşan hatırlatıcı yok — bir not ekle</Text>
+              <Plus size={18} color={colors.mutedForeground} strokeWidth={2.2} />
+            </Card>
+          </TouchableOpacity>
+        ) : (
+          <Card noPadding>
+            {upcomingReminders.map((n, i) => (
+              <TouchableOpacity
+                key={n.id}
+                activeOpacity={0.7}
+                onPress={() => nav.navigate('NoteEditor', { noteId: n.id })}
+                style={[styles.medRow, i < upcomingReminders.length - 1 && styles.medRowDivider]}
+              >
+                <View style={[styles.medIcon, { backgroundColor: colors.primaryTint }]}>
+                  <Bell size={20} color={colors.primary} strokeWidth={2.2} />
+                </View>
+                <View style={styles.medInfo}>
+                  <Text style={styles.medName} numberOfLines={1}>{n.title || 'Başlıksız not'}</Text>
+                  <Text style={styles.medMeta} numberOfLines={1}>{formatRelativeDateTime(n.reminderAt!)}</Text>
+                </View>
+                <ChevronRight size={20} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            ))}
+          </Card>
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -243,4 +301,12 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     borderWidth: 2, borderColor: colors.border,
   },
+
+  reminderEmpty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  reminderEmptyIcon: {
+    width: 40, height: 40, borderRadius: radius.lg,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  reminderEmptyText: { flex: 1, fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
 });

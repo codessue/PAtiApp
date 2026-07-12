@@ -9,7 +9,9 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
     ports:
-      - "5432:5432"
+      # Host 5433 — makinedeki yerel PostgreSQL 17 kurulumu 5432'yi kullanıyor.
+      # Konteynerler kendi aralarında Docker ağı üzerinden 5432 ile konuşmaya devam eder.
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -44,6 +46,7 @@ services:
       Jwt__Secret: ${JWT_SECRET}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
+      Anthropic__ApiKey: ${ANTHROPIC_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy

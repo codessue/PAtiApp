@@ -26,6 +26,7 @@ import { AddWeightScreen } from '../screens/weight/AddWeightScreen';
 import { MedicationListScreen } from '../screens/medications/MedicationListScreen';
 import { AddMedicationScreen } from '../screens/medications/AddMedicationScreen';
 import { NoteEditorScreen } from '../screens/notes/NoteEditorScreen';
+import { SymptomAssistantScreen } from '../screens/assistant/SymptomAssistantScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -40,6 +41,7 @@ export type RootStackParamList = {
   MedicationList: { catId: string; catName: string };
   AddMedication: { catId: string };
   NoteEditor: { noteId?: string; catId?: string };
+  SymptomAssistant: { catId?: string } | undefined;
 };
 
 export type AuthStackParamList = {
@@ -193,6 +195,7 @@ export const Navigation = () => {
             <Stack.Screen name="MedicationList" component={MedicationListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · İlaçlar` })} />
             <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'İlaç Ekle' }} />
             <Stack.Screen name="NoteEditor" component={NoteEditorScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="SymptomAssistant" component={SymptomAssistantScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

@@ -91,6 +91,23 @@ export interface Note {
   updatedAt: string;
 }
 
+export type SymptomUrgency = 'acil' | 'yakinda' | 'izle' | 'bilgi';
+
+export interface SymptomCheckRequest {
+  catId?: string;
+  message: string;
+  durationDays?: number;
+}
+
+export interface SymptomCheckResult {
+  urgency: SymptomUrgency;
+  summary: string;
+  possibleCauses: string[];
+  recommendations: string[];
+  vetQuestions: string[];
+  disclaimer: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

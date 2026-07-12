@@ -19,7 +19,7 @@ interface InputProps extends TextInputProps {
 
 // Spec: UI_REDESIGN_1.md §3 — Input.
 export const Input = forwardRef<TextInput, InputProps>(
-  ({ label, error, hint, trailingIcon, style, onFocus, onBlur, ...props }, ref) => {
+  ({ label, error, hint, trailingIcon, style, onFocus, onBlur, secureTextEntry, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
 
     // Event types are intentionally inferred — RN's `TextInput` focus/blur
@@ -33,6 +33,20 @@ export const Input = forwardRef<TextInput, InputProps>(
       setFocused(false);
       onBlur?.(e);
     };
+
+    // iOS overlays a yellow "Strong Password" AutoFill cover view on secure
+    // fields, which hides typed text. Opting the field out of password AutoFill
+    // (textContentType="oneTimeCode" + autoComplete="off") disables that overlay
+    // so typed characters render normally.
+    const securePasswordProps: Partial<TextInputProps> = secureTextEntry
+      ? {
+          secureTextEntry: true,
+          textContentType: 'oneTimeCode',
+          autoComplete: 'off',
+          autoCorrect: false,
+          spellCheck: false,
+        }
+      : { secureTextEntry };
 
     return (
       <View style={styles.container}>
@@ -51,6 +65,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             {...props}
+            {...securePasswordProps}
           />
           {trailingIcon ? <View style={styles.trailing}>{trailingIcon}</View> : null}
         </View>

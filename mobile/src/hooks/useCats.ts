@@ -48,3 +48,22 @@ export const useDeleteCat = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cats'] }),
   });
 };
+
+export const useUploadCatPhoto = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, uri }: { id: string; uri: string }) => {
+      const name = uri.split('/').pop() || 'photo.jpg';
+      const ext = name.split('.').pop()?.toLowerCase();
+      const type = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
+      const form = new FormData();
+      // React Native FormData file shape: { uri, name, type }.
+      form.append('photo', { uri, name, type } as unknown as Blob);
+      return catsApi.uploadPhoto(id, form);
+    },
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['cats'] });
+      qc.invalidateQueries({ queryKey: ['cats', id] });
+    },
+  });
+};

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -11,23 +11,29 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Plus } from 'lucide-react-native';
-import { useCat, useUpdateCat } from '../../hooks/useCats';
+import { useCat, useUpdateCat, useUploadCatPhoto } from '../../hooks/useCats';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
+import { Header } from '../../components/ui/Header';
 import { CAT_BREEDS } from '../../constants/vaccineTypes';
+import { mediaUrl } from '../../utils/media';
 
 const schema = z.object({
   name: z.string().min(1, 'Kedi adı zorunludur'),
   breed: z.string().optional(),
   gender: z.enum(['male', 'female']).optional(),
   color: z.string().optional(),
+  birthDate: z.string().optional(),
   isNeutered: z.boolean(),
   notes: z.string().optional(),
 });
@@ -35,12 +41,38 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const EditCatScreen = () => {
+  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute();
   const { catId } = route.params as { catId: string };
   const { data: cat } = useCat(catId);
   const { mutateAsync: updateCat } = useUpdateCat();
+  const { mutateAsync: uploadPhoto } = useUploadCatPhoto();
   const [loading, setLoading] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+
+  // Hide the native stack header (and its "Main" back-title) — this screen
+  // renders its own custom Header below.
+  useLayoutEffect(() => {
+    nav.setOptions({ headerShown: false });
+  }, [nav]);
+
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('İzin Gerekli', 'Fotoğraf seçebilmek için galeri erişim izni vermeniz gerekiyor.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,6 +81,7 @@ export const EditCatScreen = () => {
       breed: undefined,
       gender: undefined,
       color: undefined,
+      birthDate: undefined,
       isNeutered: false,
       notes: undefined,
     },
@@ -61,6 +94,7 @@ export const EditCatScreen = () => {
       breed: cat.breed,
       gender: cat.gender as 'male' | 'female' | undefined,
       color: cat.color,
+      birthDate: cat.birthDate,
       isNeutered: cat.isNeutered,
       notes: cat.notes,
     });
@@ -70,6 +104,10 @@ export const EditCatScreen = () => {
     setLoading(true);
     try {
       await updateCat({ id: catId, data });
+      // Only upload when the user picked a NEW photo this session.
+      if (photoUri) {
+        try { await uploadPhoto({ id: catId, uri: photoUri }); } catch { /* foto opsiyonel */ }
+      }
       nav.goBack();
     } catch {
       Alert.alert('Hata', 'Kedi güncellenirken bir sorun oluştu.');
@@ -78,22 +116,26 @@ export const EditCatScreen = () => {
     }
   };
 
+  const displayUri = photoUri ?? mediaUrl(cat?.photoUrl) ?? null;
+
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {/* Photo picker (UI only — upload wired in a later step) */}
-        <View style={styles.photoWrap}>
-          <TouchableOpacity style={styles.photoPicker} activeOpacity={0.8}>
-            {cat?.photoUrl ? (
-              <Image source={{ uri: cat.photoUrl }} style={styles.photoImage} />
-            ) : (
-              <>
-                <Plus size={24} color={colors.primary} strokeWidth={2.5} />
-                <Text style={styles.photoLabel}>Fotoğraf</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+    <View style={[styles.flex, { paddingTop: insets.top }]}>
+      <Header title="Kedi Düzenle" onBack={() => nav.goBack()} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Photo picker */}
+          <View style={styles.photoWrap}>
+            <TouchableOpacity style={styles.photoPicker} activeOpacity={0.8} onPress={pickImage}>
+              {displayUri ? (
+                <Image source={{ uri: displayUri }} style={styles.photoImage} />
+              ) : (
+                <>
+                  <Plus size={24} color={colors.primary} strokeWidth={2.5} />
+                  <Text style={styles.photoLabel}>Fotoğraf</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
 
         <Controller
           control={control}
@@ -129,6 +171,19 @@ export const EditCatScreen = () => {
 
         <Controller
           control={control}
+          name="birthDate"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Doğum Tarihi"
+              value={value}
+              onChange={onChange}
+              maximumDate={new Date()}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="isNeutered"
           render={({ field: { onChange, value } }) => (
             <View style={styles.toggleTile}>
@@ -155,15 +210,16 @@ export const EditCatScreen = () => {
           )}
         />
 
-        <Button title="Kaydet" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button title="Kaydet" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { paddingHorizontal: 24, paddingTop: spacing.lg, gap: spacing.md, paddingBottom: spacing['3xl'] },
+  container: { paddingHorizontal: 24, paddingTop: spacing.sm, gap: spacing.md, paddingBottom: 40 },
 
   photoWrap: { alignItems: 'center', marginBottom: spacing.sm },
   photoPicker: {

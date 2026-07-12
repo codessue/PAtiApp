@@ -14,12 +14,12 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Calendar } from 'lucide-react-native';
 import { useCreateVaccine } from '../../hooks/useVaccines';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
 import { VACCINE_TYPES } from '../../constants/vaccineTypes';
 import { formatApiDate } from '../../utils/dateHelpers';
@@ -34,8 +34,6 @@ const schema = z.object({
 });
 
 type FormData = z.infer<typeof schema>;
-
-const CalendarIcon = () => <Calendar size={20} color={colors.mutedForeground} strokeWidth={2} />;
 
 export const AddVaccineScreen = () => {
   const insets = useSafeAreaInsets();
@@ -99,14 +97,11 @@ export const AddVaccineScreen = () => {
           <Controller
             control={control}
             name="lastGivenDate"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
+            render={({ field: { onChange, value } }) => (
+              <DatePicker
                 label="Aşı Tarihi"
-                placeholder="YYYY-AA-GG"
-                trailingIcon={<CalendarIcon />}
-                onChangeText={onChange}
-                onBlur={onBlur}
                 value={value}
+                onChange={onChange}
               />
             )}
           />
@@ -114,14 +109,11 @@ export const AddVaccineScreen = () => {
           <Controller
             control={control}
             name="nextDueDate"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
+            render={({ field: { onChange, value } }) => (
+              <DatePicker
                 label="Sonraki Aşı Tarihi"
-                placeholder="YYYY-AA-GG"
-                trailingIcon={<CalendarIcon />}
-                onChangeText={onChange}
-                onBlur={onBlur}
                 value={value}
+                onChange={onChange}
                 error={errors.nextDueDate?.message}
               />
             )}

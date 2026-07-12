@@ -20,6 +20,7 @@ import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
 import { formatApiDate } from '../../utils/dateHelpers';
 import { scheduleMedicationNotifications } from '../../utils/notifications';
@@ -167,16 +168,16 @@ export const AddMedicationScreen = () => {
           <Controller
             control={control}
             name="startDate"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input label="Başlangıç Tarihi" placeholder="YYYY-AA-GG" onChangeText={onChange} onBlur={onBlur} value={value} error={errors.startDate?.message} />
+            render={({ field: { onChange, value } }) => (
+              <DatePicker label="Başlangıç Tarihi" value={value} onChange={onChange} error={errors.startDate?.message} />
             )}
           />
 
           <Controller
             control={control}
             name="endDate"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input label="Bitiş Tarihi (Opsiyonel)" placeholder="YYYY-AA-GG" onChangeText={onChange} onBlur={onBlur} value={value} />
+            render={({ field: { onChange, value } }) => (
+              <DatePicker label="Bitiş Tarihi (Opsiyonel)" value={value} onChange={onChange} />
             )}
           />
 

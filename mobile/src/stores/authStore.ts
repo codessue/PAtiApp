@@ -1,35 +1,68 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '../types';
-import { authApi } from '../services/api';
+import { authApi, setSessionExpiredHandler } from '../services/api';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Locally-chosen profile photo URI (device-only, not yet synced to backend). */
+  avatarUri: string | null;
+  /** Locally-chosen "Kedilerim" cover photo URI (device-only). */
+  coverUri: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
+  setAvatarUri: (uri: string | null) => Promise<void>;
+  setCoverUri: (uri: string | null) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  avatarUri: null,
+  coverUri: null,
 
   loadUser: async () => {
     try {
       const userJson = await SecureStore.getItemAsync('user');
       const accessToken = await SecureStore.getItemAsync('accessToken');
+      const avatarUri = await SecureStore.getItemAsync('avatarUri');
+      const coverUri = await SecureStore.getItemAsync('coverUri');
       if (userJson && accessToken) {
-        set({ user: JSON.parse(userJson), isAuthenticated: true });
+        set({
+          user: JSON.parse(userJson),
+          isAuthenticated: true,
+          avatarUri: avatarUri ?? null,
+          coverUri: coverUri ?? null,
+        });
       }
     } catch {
       // ignore
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  setAvatarUri: async (uri) => {
+    if (uri) {
+      await SecureStore.setItemAsync('avatarUri', uri);
+    } else {
+      await SecureStore.deleteItemAsync('avatarUri');
+    }
+    set({ avatarUri: uri });
+  },
+
+  setCoverUri: async (uri) => {
+    if (uri) {
+      await SecureStore.setItemAsync('coverUri', uri);
+    } else {
+      await SecureStore.deleteItemAsync('coverUri');
+    }
+    set({ coverUri: uri });
   },
 
   login: async (email, password) => {
@@ -55,6 +88,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.deleteItemAsync('accessToken');
     await SecureStore.deleteItemAsync('refreshToken');
     await SecureStore.deleteItemAsync('user');
-    set({ user: null, isAuthenticated: false });
+    await SecureStore.deleteItemAsync('avatarUri');
+    await SecureStore.deleteItemAsync('coverUri');
+    set({ user: null, isAuthenticated: false, avatarUri: null, coverUri: null });
   },
 }));
+
+// Refresh token da geçersizse kullanıcıyı login ekranına döndür — tokenlar
+// api.ts tarafında zaten silindi, burada yalnızca state ve yerel oturum temizlenir.
+setSessionExpiredHandler(() => {
+  SecureStore.deleteItemAsync('user').catch(() => {});
+  useAuthStore.setState({ user: null, isAuthenticated: false });
+});

@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Bell, Check, ChevronRight, Pill, Plus, Syringe } from 'lucide-react-native';
+import { Bell, Check, ChevronRight, Pill, Plus, Syringe, WifiOff } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
@@ -35,7 +35,7 @@ export const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const { user } = useAuthStore();
-  const { data: cats } = useCats();
+  const { data: cats, isError: catsError, refetch: refetchCats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
   const { data: todayMeds, refetch: refetchMeds, isRefetching: m_refreshing } = useTodayMedications();
   const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
@@ -54,7 +54,7 @@ export const HomeScreen = () => {
   );
 
   const refreshing = v_refreshing || m_refreshing;
-  const onRefresh = () => { refetchVaccines(); refetchMeds(); loadNotes(); };
+  const onRefresh = () => { refetchCats(); refetchVaccines(); refetchMeds(); loadNotes(); };
 
   const completedMeds = todayMeds?.filter((m) => m.status === 'given').length ?? 0;
   const totalMeds = todayMeds?.length ?? 0;
@@ -69,6 +69,14 @@ export const HomeScreen = () => {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
+      {/* Connection banner — server data unreachable (local reminders still work) */}
+      {catsError && (
+        <TouchableOpacity activeOpacity={0.85} onPress={onRefresh} style={styles.offlineBanner}>
+          <WifiOff size={16} color={colors.destructive} strokeWidth={2.2} />
+          <Text style={styles.offlineText}>Sunucuya ulaşılamıyor — dokunarak tekrar dene</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Greeting */}
       <View style={styles.greeting}>
         <View style={styles.greetingText}>
@@ -301,6 +309,17 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     borderWidth: 2, borderColor: colors.border,
   },
+
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.destructiveTint,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  offlineText: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 13, color: colors.destructive },
 
   reminderEmpty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   reminderEmptyIcon: {

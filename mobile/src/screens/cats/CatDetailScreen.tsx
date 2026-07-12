@@ -24,6 +24,7 @@ import {
   getVaccineUrgencyColor,
   getVaccineUrgencyLabel,
 } from '../../utils/dateHelpers';
+import { mediaUrl } from '../../utils/media';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -98,7 +99,7 @@ export const CatDetailScreen = () => {
         {/* Hero */}
         <View style={styles.hero}>
           {cat.photoUrl ? (
-            <Image source={{ uri: cat.photoUrl }} style={styles.heroImage} resizeMode="cover" />
+            <Image source={{ uri: mediaUrl(cat.photoUrl) }} style={styles.heroImage} resizeMode="cover" />
           ) : (
             <View style={styles.heroPlaceholder}>
               <Text style={styles.heroEmoji}>🐱</Text>

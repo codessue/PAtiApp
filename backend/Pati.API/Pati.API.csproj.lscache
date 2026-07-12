@@ -57,6 +57,7 @@ TemporaryDependencyNodeTargetIdentifier=net8.0
 [sourceFiles]
 BackgroundJobs/VaccineReminderJob.cs
 Controllers/
+ AssistantController.cs
  AuthController.cs
  BaseController.cs
  CatsController.cs
@@ -66,6 +67,7 @@ Controllers/
 Data/AppDbContext.cs
 DTOs/
  ApiResponse.cs
+ Assistant/SymptomCheckDto.cs
  Auth/
   AuthResponseDto.cs
   LoginDto.cs
@@ -97,6 +99,7 @@ Repositories/
  IUnitOfWork.cs
  UnitOfWork.cs
 Services/
+ AssistantService.cs
  AuthService.cs
  CatService.cs
  MedicationService.cs
@@ -106,6 +109,7 @@ Services/
 
 [metadataReferences]
 <NUGET>/
+ anthropic/12.31.0/lib/net8.0/Anthropic.dll
  bcrypt.net-next/4.0.3/lib/net6.0/BCrypt.Net-Next.dll
  dapper/2.0.123/lib/net5.0/Dapper.dll
  fluentvalidation.aspnetcore/11.3.0/lib/net6.0/FluentValidation.AspNetCore.dll
@@ -251,7 +255,6 @@ Services/
   Microsoft.JSInterop.dll
   Microsoft.Net.Http.Headers.dll
   System.Diagnostics.EventLog.dll
-  System.IO.Pipelines.dll
   System.Security.Cryptography.Xml.dll
   System.Threading.RateLimiting.dll
  microsoft.aspnetcore.authentication.jwtbearer/8.0.11/lib/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
@@ -261,6 +264,7 @@ Services/
  microsoft.entityframeworkcore.abstractions/8.0.11/lib/net8.0/Microsoft.EntityFrameworkCore.Abstractions.dll
  microsoft.entityframeworkcore.relational/8.0.11/lib/net8.0/Microsoft.EntityFrameworkCore.Relational.dll
  microsoft.entityframeworkcore/8.0.11/lib/net8.0/Microsoft.EntityFrameworkCore.dll
+ microsoft.extensions.ai.abstractions/10.5.1/lib/net8.0/Microsoft.Extensions.AI.Abstractions.dll
  microsoft.extensions.dependencymodel/8.0.2/lib/net8.0/Microsoft.Extensions.DependencyModel.dll
  microsoft.identitymodel.abstractions/8.4.0/lib/net8.0/Microsoft.IdentityModel.Abstractions.dll
  microsoft.identitymodel.jsonwebtokens/8.4.0/lib/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
@@ -403,8 +407,6 @@ Services/
   System.Text.Encoding.CodePages.dll
   System.Text.Encoding.dll
   System.Text.Encoding.Extensions.dll
-  System.Text.Encodings.Web.dll
-  System.Text.Json.dll
   System.Text.RegularExpressions.dll
   System.Threading.Channels.dll
   System.Threading.dll
@@ -450,6 +452,10 @@ Services/
  swashbuckle.aspnetcore.swaggergen/6.9.0/lib/net8.0/Swashbuckle.AspNetCore.SwaggerGen.dll
  swashbuckle.aspnetcore.swaggerui/6.9.0/lib/net8.0/Swashbuckle.AspNetCore.SwaggerUI.dll
  system.identitymodel.tokens.jwt/8.4.0/lib/net8.0/System.IdentityModel.Tokens.Jwt.dll
+ system.io.pipelines/10.0.6/lib/net8.0/System.IO.Pipelines.dll
+ system.net.serversentevents/10.0.1/lib/net8.0/System.Net.ServerSentEvents.dll
+ system.text.encodings.web/10.0.6/lib/net8.0/System.Text.Encodings.Web.dll
+ system.text.json/10.0.6/lib/net8.0/System.Text.Json.dll
 
 [analyzerReferences]
 ../../../../../usr/local/share/dotnet/sdk/9.0.102/Sdks/Microsoft.NET.Sdk.Razor/source-generators/
@@ -480,8 +486,8 @@ Services/
   Microsoft.Interop.JavaScript.JSImportGenerator.dll
   Microsoft.Interop.LibraryImportGenerator.dll
   Microsoft.Interop.SourceGeneration.dll
-  System.Text.Json.SourceGeneration.dll
   System.Text.RegularExpressions.Generator.dll
+ system.text.json/10.0.6/analyzers/dotnet/roslyn4.4/cs/System.Text.Json.SourceGeneration.dll
 
 [analyzerConfigFiles]
 ../../../../../usr/local/share/dotnet/sdk/9.0.102/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig

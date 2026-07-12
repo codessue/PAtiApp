@@ -14,12 +14,12 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Calendar } from 'lucide-react-native';
 import { useAddWeight } from '../../hooks/useWeightLogs';
 import { colors } from '../../constants/colors';
 import { fonts, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
 import { formatApiDate } from '../../utils/dateHelpers';
 
@@ -91,15 +91,13 @@ export const AddWeightScreen = () => {
           <Controller
             control={control}
             name="loggedAt"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
+            render={({ field: { onChange, value } }) => (
+              <DatePicker
                 label="Tarih"
-                placeholder="YYYY-AA-GG"
-                trailingIcon={<Calendar size={20} color={colors.primary} strokeWidth={2} />}
-                onChangeText={onChange}
-                onBlur={onBlur}
                 value={value}
+                onChange={onChange}
                 error={errors.loggedAt?.message}
+                maximumDate={new Date()}
               />
             )}
           />

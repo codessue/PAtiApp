@@ -3,6 +3,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Pati.API.BackgroundJobs;
@@ -35,6 +36,7 @@ builder.Services.AddScoped<VaccineService>();
 builder.Services.AddScoped<WeightService>();
 builder.Services.AddScoped<MedicationService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<AssistantService>();
 builder.Services.AddScoped<VaccineReminderJob>();
 
 builder.Services.AddHttpClient();
@@ -113,6 +115,18 @@ app.UseSwaggerUI();
 app.UseSerilogRequestLogging();
 app.UseCors();
 app.UseStaticFiles();
+
+// Serve uploaded files (cat photos) from {contentRoot}/wwwroot/uploads at /uploads.
+// The published image has no wwwroot at startup, so the default UseStaticFiles()
+// provider serves nothing — this explicit provider makes /uploads/** reachable.
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

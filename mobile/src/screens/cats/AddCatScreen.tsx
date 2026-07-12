@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,16 +11,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigation } from '@react-navigation/native';
 import { Plus } from 'lucide-react-native';
-import { useCreateCat } from '../../hooks/useCats';
+import { useCreateCat, useUploadCatPhoto } from '../../hooks/useCats';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
+import { Header } from '../../components/ui/Header';
 import { CAT_BREEDS } from '../../constants/vaccineTypes';
 
 // Light-blue gender accent (per design; not part of the core token palette).
@@ -31,6 +36,7 @@ const schema = z.object({
   breed: z.string().optional(),
   gender: z.enum(['male', 'female']).optional(),
   color: z.string().optional(),
+  birthDate: z.string().optional(),
   isNeutered: z.boolean(),
   notes: z.string().optional(),
 });
@@ -38,19 +44,50 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const AddCatScreen = () => {
+  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const { mutateAsync: createCat } = useCreateCat();
+  const { mutateAsync: uploadPhoto } = useUploadCatPhoto();
   const [loading, setLoading] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+
+  // Hide the native stack header (and its "Main" back-title) — this screen
+  // renders its own custom Header below.
+  useLayoutEffect(() => {
+    nav.setOptions({ headerShown: false });
+  }, [nav]);
 
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { isNeutered: false },
   });
 
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('İzin Gerekli', 'Fotoğraf seçebilmek için galeri erişim izni vermeniz gerekiyor.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      await createCat(data);
+      const res = await createCat(data);
+      const newId = res?.data?.data?.id as string | undefined;
+      // Photo is optional and uploaded separately; don't fail the whole save on it.
+      if (photoUri && newId) {
+        try { await uploadPhoto({ id: newId, uri: photoUri }); } catch { /* foto opsiyonel */ }
+      }
       nav.goBack();
     } catch {
       Alert.alert('Hata', 'Kedi eklenirken bir sorun oluştu.');
@@ -60,15 +97,23 @@ export const AddCatScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {/* Photo picker (UI only — upload wired in a later step) */}
-        <View style={styles.photoWrap}>
-          <TouchableOpacity style={styles.photoPicker} activeOpacity={0.8}>
-            <Plus size={24} color={colors.primary} strokeWidth={2.5} />
-            <Text style={styles.photoLabel}>Fotoğraf</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={[styles.flex, { paddingTop: insets.top }]}>
+      <Header title="Kedi Ekle" onBack={() => nav.goBack()} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Photo picker */}
+          <View style={styles.photoWrap}>
+            <TouchableOpacity style={styles.photoPicker} activeOpacity={0.8} onPress={pickImage}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.photoImage} />
+              ) : (
+                <>
+                  <Plus size={24} color={colors.primary} strokeWidth={2.5} />
+                  <Text style={styles.photoLabel}>Fotoğraf</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
 
         <Controller
           control={control}
@@ -139,6 +184,19 @@ export const AddCatScreen = () => {
 
         <Controller
           control={control}
+          name="birthDate"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Doğum Tarihi"
+              value={value}
+              onChange={onChange}
+              maximumDate={new Date()}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="isNeutered"
           render={({ field: { onChange, value } }) => (
             <View style={styles.toggleTile}>
@@ -174,23 +232,25 @@ export const AddCatScreen = () => {
           )}
         />
 
-        <Button title="Kedi Ekle" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button title="Kedi Ekle" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { paddingHorizontal: 24, paddingTop: spacing.lg, gap: spacing.md, paddingBottom: spacing['3xl'] },
+  container: { paddingHorizontal: 24, paddingTop: spacing.sm, gap: spacing.md, paddingBottom: 40 },
 
   photoWrap: { alignItems: 'center', marginBottom: spacing.sm },
   photoPicker: {
     width: 96, height: 96, borderRadius: 48,
     borderWidth: 1.5, borderColor: colors.primary, borderStyle: 'dashed',
     backgroundColor: 'rgba(196,98,45,0.05)',
-    alignItems: 'center', justifyContent: 'center', gap: 2,
+    alignItems: 'center', justifyContent: 'center', gap: 2, overflow: 'hidden',
   },
+  photoImage: { width: '100%', height: '100%' },
   photoLabel: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.primary },
 
   fieldGroup: { marginBottom: spacing.xs },

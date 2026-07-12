@@ -10,6 +10,13 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Token yenileme de başarısız olduğunda (oturum gerçekten düştü) çağrılır;
+// authStore kayıt olur ve kullanıcıyı login ekranına döndürür.
+let onSessionExpired: (() => void) | null = null;
+export const setSessionExpiredHandler = (handler: () => void) => {
+  onSessionExpired = handler;
+};
+
 api.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -41,6 +48,7 @@ api.interceptors.response.use(
       } catch {
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
+        onSessionExpired?.();
       }
     }
     return Promise.reject(error);
@@ -85,6 +93,11 @@ export const weightApi = {
   getSummary: (catId: string) => api.get(`/cats/${catId}/weight/summary`),
   create: (catId: string, data: unknown) => api.post(`/cats/${catId}/weight`, data),
   delete: (catId: string, id: string) => api.delete(`/cats/${catId}/weight/${id}`),
+};
+
+export const assistantApi = {
+  symptomCheck: (data: { catId?: string; message: string; durationDays?: number }) =>
+    api.post('/assistant/symptom-check', data),
 };
 
 export const medicationsApi = {

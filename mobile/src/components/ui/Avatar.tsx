@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { colors } from '../../constants/colors';
 import { radius } from '../../constants/typography';
+import { mediaUrl } from '../../utils/media';
 
 interface AvatarProps {
   uri?: string;
@@ -14,6 +15,9 @@ export const Avatar: React.FC<AvatarProps> = ({ uri, name, size = 48, style }) =
   const initials = name
     ? name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
     : '🐱';
+  // Cat photos come back as relative paths ("/uploads/..."); resolve to an
+  // absolute URL. Local/absolute URIs (file://, http) pass through unchanged.
+  const resolved = mediaUrl(uri);
 
   return (
     <View
@@ -23,8 +27,8 @@ export const Avatar: React.FC<AvatarProps> = ({ uri, name, size = 48, style }) =
         style,
       ]}
     >
-      {uri ? (
-        <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+      {resolved ? (
+        <Image source={{ uri: resolved }} style={{ width: size, height: size, borderRadius: size / 2 }} />
       ) : (
         <Text style={[styles.initials, { fontSize: size * 0.36 }]}>{initials}</Text>
       )}

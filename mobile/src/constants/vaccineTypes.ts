@@ -9,10 +9,12 @@ export const VACCINE_TYPES = [
   'Diğer',
 ] as const;
 
+// Turkish breeds first, then international, then "Diğer".
 export const CAT_BREEDS = [
   'Tekir',
+  'Sarman',
   'Van Kedisi',
-  'Ankara Kedisi',
+  'Ankara Kedisi (Turkish Angora)',
   'British Shorthair',
   'Scottish Fold',
   'Persian',
@@ -24,7 +26,6 @@ export const CAT_BREEDS = [
   'Abyssinian',
   'Sphynx',
   'Norwegian Forest',
-  'Turkish Angora',
   'Birman',
   'Devon Rex',
   'Burmese',

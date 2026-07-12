@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.pati.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Kedinizin fotoğrafını çekmek için kamera erişimi gerekiyor.",
-        "NSPhotoLibraryUsageDescription": "Kedinizin fotoğrafını seçmek için galeri erişimi gerekiyor."
+        "NSPhotoLibraryUsageDescription": "Kedinizin fotoğrafını seçmek için galeri erişimi gerekiyor.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -50,7 +51,8 @@
         {
           "photosPermission": "Kedinizin fotoğrafını seçmek için galeri erişimi isteniyor."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

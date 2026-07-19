@@ -20,7 +20,9 @@ public class AssistantService(
     ILogger<AssistantService> logger)
 {
     private const int DefaultDailyLimit = 5;
-    private const string DefaultModel = "gemini-3.5-flash"; // ücretsiz katman: ~1500 istek/gün
+    // Benchmark (19 Tem 2026): 3.5-flash ~30sn, 3.1-flash-lite ~1.5sn — lite hem
+    // hızlı hem ücretsiz katmanı geniş; kalite bu kullanım için fazlasıyla yeterli.
+    private const string DefaultModel = "gemini-3.1-flash-lite";
 
     // Yanıtta her zaman bulunması için uyarı metni modele bırakılmaz, sunucuda eklenir.
     private const string Disclaimer =
@@ -127,7 +129,7 @@ public class AssistantService(
             {
                 responseMimeType = "application/json",
                 responseSchema = BuildSchema(),
-                maxOutputTokens = 2048,
+                maxOutputTokens = 4096,
                 temperature = 0.4,
             },
         };

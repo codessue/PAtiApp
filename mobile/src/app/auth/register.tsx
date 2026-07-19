@@ -81,7 +81,7 @@ export const RegisterScreen: React.FC<Props> = ({ onNavigateToLogin }) => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
                   label="Ad Soyad"
-                  placeholder="Duru Sue"
+                  placeholder="Adınız Soyadınız"
                   autoCapitalize="words"
                   onChangeText={onChange}
                   onBlur={onBlur}

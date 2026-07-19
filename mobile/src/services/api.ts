@@ -97,8 +97,9 @@ export const weightApi = {
 };
 
 export const assistantApi = {
+  // AI yanıtı genel 15sn zaman aşımından uzun sürebilir — bu istekte 60sn tanınır.
   symptomCheck: (data: { catId?: string; message: string; durationDays?: number }) =>
-    api.post('/assistant/symptom-check', data),
+    api.post('/assistant/symptom-check', data, { timeout: 60000 }),
 };
 
 export const medicationsApi = {

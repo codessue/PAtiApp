@@ -2,22 +2,32 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { Note } from '../types';
 import { scheduleNoteReminder, cancelNoteReminder } from '../utils/notifications';
+import { useAuthStore } from './authStore';
 
 // Device-only persistence (per UI scope: notes never leave the phone).
 //
-// Each note is stored under its own SecureStore key (`note.item.<id>`) with a
-// separate index key holding the ordered list of ids. Per-note keys keep each
-// stored value small, sidestepping SecureStore's ~2KB per-value Android limit
-// that a single combined JSON blob would eventually hit.
-const INDEX_KEY = 'notes.index';
-const itemKey = (id: string) => `note.item.${id}`;
+// Each note is stored under its own SecureStore key with a separate index key
+// holding the ordered list of ids. Per-note keys keep each stored value small,
+// sidestepping SecureStore's ~2KB per-value Android limit that a single
+// combined JSON blob would eventually hit.
+//
+// Keys are namespaced by the LOGGED-IN USER's id so accounts on the same
+// device never see each other's notes. (Notes are never sent to the server,
+// so cross-device/cross-user leakage is impossible by design.)
+const indexKey = (uid: string) => `notes.index.${uid}`;
+const itemKey = (uid: string, id: string) => `note.item.${uid}.${id}`;
+
+// Pre-namespace legacy keys (v1) — cleaned up once on first load.
+const LEGACY_INDEX_KEY = 'notes.index';
+const legacyItemKey = (id: string) => `note.item.${id}`;
+
+const currentUid = (): string | null => useAuthStore.getState().user?.id ?? null;
 
 // SecureStore keys must be [A-Za-z0-9._-]; this id generator stays within that.
 const newId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-const readIndex = async (): Promise<string[]> => {
-  const raw = await SecureStore.getItemAsync(INDEX_KEY);
+const parseIds = (raw: string | null): string[] => {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -27,8 +37,32 @@ const readIndex = async (): Promise<string[]> => {
   }
 };
 
-const writeIndex = (ids: string[]) =>
-  SecureStore.setItemAsync(INDEX_KEY, JSON.stringify(ids));
+const readIndex = async (uid: string): Promise<string[]> =>
+  parseIds(await SecureStore.getItemAsync(indexKey(uid)));
+
+const writeIndex = (uid: string, ids: string[]) =>
+  SecureStore.setItemAsync(indexKey(uid), JSON.stringify(ids));
+
+// v1 notes weren't tied to an account, so their owner is unknowable — showing
+// them to whichever account is logged in would mix accounts' notes. Remove
+// them (and their pending reminders) once.
+const cleanupLegacyNotes = async (): Promise<void> => {
+  const raw = await SecureStore.getItemAsync(LEGACY_INDEX_KEY);
+  if (raw === null) return;
+  for (const id of parseIds(raw)) {
+    const itemRaw = await SecureStore.getItemAsync(legacyItemKey(id));
+    if (itemRaw) {
+      try {
+        const note = JSON.parse(itemRaw) as Note;
+        await cancelNoteReminder(note.notificationId);
+      } catch {
+        // bozuk kayıt — yine de sil
+      }
+      await SecureStore.deleteItemAsync(legacyItemKey(id));
+    }
+  }
+  await SecureStore.deleteItemAsync(LEGACY_INDEX_KEY);
+};
 
 // Sort: pinned first, then most-recently-updated.
 const sortNotes = (notes: Note[]): Note[] =>
@@ -62,8 +96,16 @@ export const useNotesStore = create<NotesState>((set, get) => ({
 
   load: async () => {
     try {
-      const ids = await readIndex();
-      const raw = await Promise.all(ids.map((id) => SecureStore.getItemAsync(itemKey(id))));
+      const uid = currentUid();
+      if (!uid) {
+        set({ notes: [], loaded: true });
+        return;
+      }
+
+      await cleanupLegacyNotes();
+
+      const ids = await readIndex(uid);
+      const raw = await Promise.all(ids.map((id) => SecureStore.getItemAsync(itemKey(uid, id))));
       const notes = raw
         .map((r) => {
           if (!r) return null;
@@ -81,6 +123,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   },
 
   saveNote: async (input) => {
+    const uid = currentUid();
+    if (!uid) throw new Error('Not kaydetmek için giriş yapmalısınız.');
+
     const now = new Date().toISOString();
     const existing = input.id ? get().notes.find((n) => n.id === input.id) : undefined;
 
@@ -107,10 +152,10 @@ export const useNotesStore = create<NotesState>((set, get) => ({
       updatedAt: now,
     };
 
-    await SecureStore.setItemAsync(itemKey(note.id), JSON.stringify(note));
+    await SecureStore.setItemAsync(itemKey(uid, note.id), JSON.stringify(note));
     if (!existing) {
-      const ids = await readIndex();
-      await writeIndex([note.id, ...ids]);
+      const ids = await readIndex(uid);
+      await writeIndex(uid, [note.id, ...ids]);
     }
 
     const others = get().notes.filter((n) => n.id !== note.id);
@@ -119,19 +164,42 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   },
 
   deleteNote: async (id) => {
+    const uid = currentUid();
+    if (!uid) return;
     const existing = get().notes.find((n) => n.id === id);
     await cancelNoteReminder(existing?.notificationId);
-    await SecureStore.deleteItemAsync(itemKey(id));
-    const ids = (await readIndex()).filter((x) => x !== id);
-    await writeIndex(ids);
+    await SecureStore.deleteItemAsync(itemKey(uid, id));
+    const ids = (await readIndex(uid)).filter((x) => x !== id);
+    await writeIndex(uid, ids);
     set({ notes: get().notes.filter((n) => n.id !== id) });
   },
 
   togglePin: async (id) => {
+    const uid = currentUid();
+    if (!uid) return;
     const existing = get().notes.find((n) => n.id === id);
     if (!existing) return;
     const updated: Note = { ...existing, pinned: !existing.pinned, updatedAt: new Date().toISOString() };
-    await SecureStore.setItemAsync(itemKey(id), JSON.stringify(updated));
+    await SecureStore.setItemAsync(itemKey(uid, id), JSON.stringify(updated));
     set({ notes: sortNotes(get().notes.map((n) => (n.id === id ? updated : n))) });
   },
 }));
+
+/// Hesap silinirken o hesabın cihazdaki notlarını ve hatırlatıcılarını temizler.
+export const clearNotesForUser = async (uid: string): Promise<void> => {
+  const ids = await readIndex(uid);
+  for (const id of ids) {
+    const raw = await SecureStore.getItemAsync(itemKey(uid, id));
+    if (raw) {
+      try {
+        const note = JSON.parse(raw) as Note;
+        await cancelNoteReminder(note.notificationId);
+      } catch {
+        // bozuk kayıt — yine de sil
+      }
+      await SecureStore.deleteItemAsync(itemKey(uid, id));
+    }
+  }
+  await SecureStore.deleteItemAsync(indexKey(uid));
+  useNotesStore.setState({ notes: [], loaded: false });
+};

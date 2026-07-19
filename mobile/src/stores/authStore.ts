@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '../types';
 import { authApi, setSessionExpiredHandler } from '../services/api';
+import { clearNotesForUser, useNotesStore } from './notesStore';
 
 interface AuthState {
   user: User | null;
@@ -86,7 +87,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   deleteAccount: async () => {
+    const uid = useAuthStore.getState().user?.id;
     await authApi.deleteAccount(); // hata olursa fırlatır — UI gösterir, oturum korunur
+    if (uid) {
+      // Cihazda kalan notları ve hatırlatıcıları da temizle (KVKK).
+      try { await clearNotesForUser(uid); } catch { /* en-iyi-çaba */ }
+    }
     await SecureStore.deleteItemAsync('accessToken');
     await SecureStore.deleteItemAsync('refreshToken');
     await SecureStore.deleteItemAsync('user');
@@ -102,6 +108,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.deleteItemAsync('user');
     await SecureStore.deleteItemAsync('avatarUri');
     await SecureStore.deleteItemAsync('coverUri');
+    // Bellekteki not listesini sıfırla — sonraki girişte doğru hesabın
+    // notları diskteki hesaba-özel anahtarlardan yeniden yüklenir.
+    useNotesStore.setState({ notes: [], loaded: false });
     set({ user: null, isAuthenticated: false, avatarUri: null, coverUri: null });
   },
 }));
@@ -110,5 +119,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 // api.ts tarafında zaten silindi, burada yalnızca state ve yerel oturum temizlenir.
 setSessionExpiredHandler(() => {
   SecureStore.deleteItemAsync('user').catch(() => {});
+  useNotesStore.setState({ notes: [], loaded: false });
   useAuthStore.setState({ user: null, isAuthenticated: false });
 });

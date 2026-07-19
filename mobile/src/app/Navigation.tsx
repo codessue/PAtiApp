@@ -65,7 +65,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 // Maps tab routes → lucide icon + Turkish label.
 const TAB_META: Record<keyof TabParamList, { icon: LucideIcon; label: string }> = {
   Home:    { icon: HomeIcon,    label: 'Ana Sayfa' },
-  Cats:    { icon: PawPrint,    label: 'Kediler' },
+  Cats:    { icon: PawPrint,    label: 'Dostlarım' },
   Health:  { icon: HeartPulse,  label: 'Sağlık' },
   Notes:   { icon: NotebookPen, label: 'Notlar' },
   Profile: { icon: User,        label: 'Profil' },
@@ -185,9 +185,9 @@ export const Navigation = () => {
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
-            <Stack.Screen name="CatDetail" component={CatDetailScreen} options={{ title: 'Kedi Detayı' }} />
-            <Stack.Screen name="AddCat" component={AddCatScreen} options={{ title: 'Kedi Ekle' }} />
-            <Stack.Screen name="EditCat" component={EditCatScreen} options={{ title: 'Kedi Düzenle' }} />
+            <Stack.Screen name="CatDetail" component={CatDetailScreen} options={{ title: 'Dost Detayı' }} />
+            <Stack.Screen name="AddCat" component={AddCatScreen} options={{ title: 'Dost Ekle' }} />
+            <Stack.Screen name="EditCat" component={EditCatScreen} options={{ title: 'Dostu Düzenle' }} />
             <Stack.Screen name="VaccineList" component={VaccineListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Aşılar` })} />
             <Stack.Screen name="AddVaccine" component={AddVaccineScreen} options={{ title: 'Aşı Ekle' }} />
             <Stack.Screen name="WeightChart" component={WeightChartScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Kilo` })} />

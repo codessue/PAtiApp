@@ -39,6 +39,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.UserId).HasColumnName("user_id");
             e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Species).HasColumnName("species").HasMaxLength(20).IsRequired().HasDefaultValue("kedi");
             e.Property(x => x.Breed).HasColumnName("breed").HasMaxLength(100);
             e.Property(x => x.BirthDate).HasColumnName("birth_date");
             e.Property(x => x.Gender).HasColumnName("gender").HasMaxLength(10);

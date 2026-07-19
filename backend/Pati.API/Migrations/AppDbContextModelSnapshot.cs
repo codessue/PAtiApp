@@ -75,6 +75,14 @@ namespace Pati.API.Migrations
                         .HasColumnType("text")
                         .HasColumnName("photo_url");
 
+                    b.Property<string>("Species")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("kedi")
+                        .HasColumnName("species");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

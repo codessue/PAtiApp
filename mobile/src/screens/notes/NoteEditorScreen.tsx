@@ -176,7 +176,7 @@ export const NoteEditorScreen = () => {
           {/* Cat picker (optional) */}
           {cats && cats.length > 0 && (
             <>
-              <Text style={styles.fieldLabel}>Kedi (opsiyonel)</Text>
+              <Text style={styles.fieldLabel}>Dost (opsiyonel)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
                 <TouchableOpacity
                   activeOpacity={0.8}

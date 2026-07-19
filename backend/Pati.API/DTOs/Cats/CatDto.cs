@@ -3,6 +3,7 @@ namespace Pati.API.DTOs.Cats;
 public record CatDto(
     Guid Id,
     string Name,
+    string Species,
     string? Breed,
     DateOnly? BirthDate,
     string? Gender,
@@ -17,6 +18,7 @@ public record CatDto(
 
 public record CreateCatDto(
     string Name,
+    string? Species,
     string? Breed,
     DateOnly? BirthDate,
     string? Gender,
@@ -27,6 +29,7 @@ public record CreateCatDto(
 
 public record UpdateCatDto(
     string Name,
+    string? Species,
     string? Breed,
     DateOnly? BirthDate,
     string? Gender,

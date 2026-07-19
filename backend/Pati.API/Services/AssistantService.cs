@@ -20,7 +20,7 @@ public class AssistantService(
     ILogger<AssistantService> logger)
 {
     private const int DefaultDailyLimit = 5;
-    private const string DefaultModel = "gemini-2.5-flash";
+    private const string DefaultModel = "gemini-3.5-flash"; // ücretsiz katman: ~1500 istek/gün
 
     // Yanıtta her zaman bulunması için uyarı metni modele bırakılmaz, sunucuda eklenir.
     private const string Disclaimer =
@@ -30,20 +30,26 @@ public class AssistantService(
 
     private const string SystemPrompt =
         """
-        Sen "Pati" uygulamasının kedi sağlığı bilgilendirme asistanısın. Bir veteriner
-        hekim DEĞİLSİN ve KESİNLİKLE teşhis koymazsın. Görevin, kedi sahibine olası
-        nedenler hakkında genel bilgi vermek ve aciliyeti değerlendirmektir.
+        Sen "Pati" uygulamasının evcil hayvan sağlığı bilgilendirme asistanısın. Kedi,
+        köpek, kuş, hamster, tavşan gibi evcil hayvanlar hakkında bilgi verirsin. Bir
+        veteriner hekim DEĞİLSİN ve KESİNLİKLE teşhis koymazsın. Görevin, hayvan
+        sahibine olası nedenler hakkında genel bilgi vermek ve aciliyeti değerlendirmektir.
 
         Kurallar:
-        - Türkçe, sade ve sakin bir dille yaz. Kedi sahibi panik yapmasın ama riski de
+        - Türkçe, sade ve sakin bir dille yaz. Hayvan sahibi panik yapmasın ama riski de
           küçümseme.
+        - Değerlendirmeni hayvanın TÜRÜNE göre yap: aynı belirti türden türe çok farklı
+          anlam taşıyabilir (örn. kuş ve hamster gibi küçük hayvanlar hastalığı gizler,
+          durumları çok hızlı kötüleşir — onlarda eşiği daha da temkinli tut).
         - Aciliyeti TEMKİNLİ değerlendir: emin değilsen daha yüksek aciliyet seç.
-        - Şu durumlarda aciliyet "acil" olmalı: 24 saatten uzun süre hiç yememe/içmeme,
-          nefes alma güçlüğü, idrar yapamama veya ağrılı/sık idrar denemesi (özellikle
-          erkek kedide), tekrarlayan kusma, bilinç bulanıklığı/baygınlık, nöbet,
-          felç/güçsüzlük, ciddi kanama, zehirlenme şüphesi, yutulan yabancı cisim.
-        - Asla ilaç adı, doz veya reçete önerme. İnsan ilaçlarının kediler için tehlikeli
-          olabileceğini hatırlat.
+        - Şu durumlarda aciliyet "acil" olmalı: uzun süre hiç yememe/içmeme (küçük
+          hayvanlarda birkaç saat bile kritik olabilir), nefes alma güçlüğü, idrar
+          yapamama (özellikle erkek kedide tıkanma), tekrarlayan kusma/ishal, bilinç
+          bulanıklığı/baygınlık, nöbet, felç/güçsüzlük, ciddi kanama, zehirlenme
+          şüphesi, yutulan yabancı cisim, ciddi travma/düşme.
+        - Asla ilaç adı, doz veya reçete önerme. İnsan ilaçlarının evcil hayvanlar için
+          tehlikeli olabileceğini hatırlat.
+        - Tür belirtilmemişse genel konuş ve gerekiyorsa türe göre farkları kısaca not et.
         - Liste alanlarını kısa tut (3-5 madde).
         - Yanıtı SADECE istenen JSON şemasına uygun ver.
 
@@ -198,9 +204,10 @@ public class AssistantService(
 
         if (request.CatId is { } catId)
         {
-            // GetCatAsync sahiplik kontrolünü de yapar; başkasının kedisi 404 döner.
+            // GetCatAsync sahiplik kontrolünü de yapar; başkasının hayvanı 404 döner.
             var cat = await catService.GetCatAsync(catId, userId);
-            sb.AppendLine("Kedinin bilgileri:");
+            sb.AppendLine("Evcil hayvanın bilgileri:");
+            sb.AppendLine($"- Tür: {SpeciesLabel(cat.Species)}");
             sb.AppendLine($"- İsim: {cat.Name}");
             if (!string.IsNullOrWhiteSpace(cat.Breed)) sb.AppendLine($"- Irk: {cat.Breed}");
             if (cat.BirthDate is { } birth) sb.AppendLine($"- Yaş: {DescribeAge(birth)}");
@@ -220,6 +227,16 @@ public class AssistantService(
 
         return sb.ToString();
     }
+
+    private static string SpeciesLabel(string species) => species switch
+    {
+        "kedi" => "Kedi",
+        "kopek" => "Köpek",
+        "kus" => "Kuş",
+        "hamster" => "Hamster",
+        "tavsan" => "Tavşan",
+        _ => "Diğer",
+    };
 
     private static string DescribeAge(DateOnly birth)
     {

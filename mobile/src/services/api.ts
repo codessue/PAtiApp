@@ -65,6 +65,7 @@ export const authApi = {
   logout: () => api.post('/auth/logout'),
   updatePushToken: (expoPushToken: string) =>
     api.put('/auth/push-token', { expoPushToken }),
+  deleteAccount: () => api.delete('/auth/account'),
 };
 
 export const catsApi = {

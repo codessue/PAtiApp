@@ -14,6 +14,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Sunucuda hesabı kalıcı siler, ardından yerel oturumu temizler. */
+  deleteAccount: () => Promise<void>;
   loadUser: () => Promise<void>;
   setAvatarUri: (uri: string | null) => Promise<void>;
   setCoverUri: (uri: string | null) => Promise<void>;
@@ -81,6 +83,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.setItemAsync('refreshToken', refreshToken);
     await SecureStore.setItemAsync('user', JSON.stringify(user));
     set({ user, isAuthenticated: true });
+  },
+
+  deleteAccount: async () => {
+    await authApi.deleteAccount(); // hata olursa fırlatır — UI gösterir, oturum korunur
+    await SecureStore.deleteItemAsync('accessToken');
+    await SecureStore.deleteItemAsync('refreshToken');
+    await SecureStore.deleteItemAsync('user');
+    await SecureStore.deleteItemAsync('avatarUri');
+    await SecureStore.deleteItemAsync('coverUri');
+    set({ user: null, isAuthenticated: false, avatarUri: null, coverUri: null });
   },
 
   logout: async () => {

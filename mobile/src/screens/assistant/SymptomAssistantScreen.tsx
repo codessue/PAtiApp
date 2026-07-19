@@ -87,7 +87,7 @@ export const SymptomAssistantScreen = () => {
           {/* Cat selector */}
           {cats && cats.length > 0 && (
             <>
-              <Text style={styles.label}>Hangi kedi? (opsiyonel)</Text>
+              <Text style={styles.label}>Hangi dostun için? (opsiyonel)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 <Chip label="Belirtme" active={!catId} onPress={() => setCatId(undefined)} />
                 {cats.map((c) => (

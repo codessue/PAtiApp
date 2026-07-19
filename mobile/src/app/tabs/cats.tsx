@@ -64,7 +64,7 @@ export const CatsScreen = () => {
   const coverCaption = total > 0 ? `${total} tüylü dostun` : 'Tüylü ailen';
 
   const stats = [
-    { icon: PawPrint, value: total, label: 'Kedi', color: colors.primary, tint: colors.primaryTint },
+    { icon: PawPrint, value: total, label: 'Dost', color: colors.primary, tint: colors.primaryTint },
     { icon: CheckCircle2, value: healthy, label: 'Sağlıklı', color: colors.success, tint: colors.successTint },
     { icon: Syringe, value: tracked, label: 'Aşı Takibi', color: colors.warning, tint: colors.warningTint },
   ];
@@ -76,7 +76,7 @@ export const CatsScreen = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
       >
-        <Text style={styles.title}>Kedilerim</Text>
+        <Text style={styles.title}>Dostlarım</Text>
         <Text style={styles.subtitle}>Sevimli ailenin sağlık merkezi</Text>
 
         {/* Customizable cover photo */}
@@ -130,9 +130,9 @@ export const CatsScreen = () => {
         ) : total === 0 ? (
           <EmptyState
             image={require('../../../assets/cat-walk.png')}
-            title="Henüz kedi eklemediniz"
-            description="İlk kedinizi ekleyerek sağlık takibine başlayın."
-            actionLabel="Kedi Ekle"
+            title="Henüz dost eklemedin"
+            description="İlk dostunu ekleyerek sağlık takibine başla."
+            actionLabel="Dost Ekle"
             onAction={() => nav.navigate('AddCat')}
           />
         ) : (
@@ -172,7 +172,7 @@ export const CatsScreen = () => {
               style={styles.addButton}
             >
               <Plus size={22} color={colors.primary} strokeWidth={2.5} />
-              <Text style={styles.addLabel}>Yeni Kedi Ekle</Text>
+              <Text style={styles.addLabel}>Yeni Dost Ekle</Text>
             </TouchableOpacity>
           </>
         )}

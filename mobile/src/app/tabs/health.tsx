@@ -12,6 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { getSpecies } from '../../constants/species';
 import { getCatAge } from '../../utils/dateHelpers';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -66,9 +67,9 @@ export const HealthScreen = () => {
       ) : !cats || cats.length === 0 ? (
         <EmptyState
           image={require('../../../assets/cat-walk.png')}
-          title="Henüz kedi yok"
-          description="Sağlık kayıtlarını görmek için önce bir kedi ekleyin."
-          actionLabel="Kedi Ekle"
+          title="Henüz dost yok"
+          description="Sağlık kayıtlarını görmek için önce bir dost ekleyin."
+          actionLabel="Dost Ekle"
           onAction={() => nav.navigate('AddCat')}
         />
       ) : (
@@ -80,7 +81,7 @@ export const HealthScreen = () => {
               <View style={{ flex: 1 }}>
                 <Text style={styles.catName} numberOfLines={1}>{cat.name}</Text>
                 <Text style={styles.catMeta} numberOfLines={1}>
-                  {cat.breed ?? 'Irk bilinmiyor'} • {getCatAge(cat.birthDate)}
+                  {getSpecies(cat.species).emoji} {cat.breed ?? getSpecies(cat.species).label} • {getCatAge(cat.birthDate)}
                 </Text>
               </View>
             </View>

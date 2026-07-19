@@ -38,6 +38,14 @@ public class AuthController(AuthService authService) : BaseController
     }
 
     [Authorize]
+    [HttpDelete("account")]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        await authService.DeleteAccountAsync(CurrentUserId);
+        return Ok(ApiResponse.OkEmpty("Hesabınız ve tüm verileriniz kalıcı olarak silindi."));
+    }
+
+    [Authorize]
     [HttpPut("push-token")]
     public async Task<IActionResult> UpdatePushToken([FromBody] UpdatePushTokenDto dto)
     {

@@ -21,7 +21,8 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
-import { VACCINE_TYPES } from '../../constants/vaccineTypes';
+import { VACCINES_BY_SPECIES, Species } from '../../constants/species';
+import { useCat } from '../../hooks/useCats';
 import { formatApiDate } from '../../utils/dateHelpers';
 
 const schema = z.object({
@@ -41,6 +42,8 @@ export const AddVaccineScreen = () => {
   const route = useRoute();
   const { catId } = route.params as { catId: string };
   const { mutateAsync: createVaccine } = useCreateVaccine(catId);
+  const { data: cat } = useCat(catId);
+  const vaccineOptions = VACCINES_BY_SPECIES[(cat?.species as Species) ?? 'kedi'];
   const [loading, setLoading] = useState(false);
 
   useLayoutEffect(() => {
@@ -77,7 +80,7 @@ export const AddVaccineScreen = () => {
                 <Text style={styles.label}>Aşı Tipi</Text>
                 {errors.vaccineType && <Text style={styles.error}>{errors.vaccineType.message}</Text>}
                 <View style={styles.typeGrid}>
-                  {VACCINE_TYPES.map((type) => {
+                  {vaccineOptions.map((type) => {
                     const selected = value === type;
                     return (
                       <TouchableOpacity

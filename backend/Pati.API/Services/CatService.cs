@@ -37,6 +37,7 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
         {
             UserId = userId,
             Name = dto.Name,
+            Species = NormalizeSpecies(dto.Species),
             Breed = dto.Breed,
             BirthDate = dto.BirthDate,
             Gender = dto.Gender,
@@ -57,6 +58,7 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
             ?? throw new KeyNotFoundException("Kedi bulunamadı.");
 
         cat.Name = dto.Name;
+        cat.Species = NormalizeSpecies(dto.Species, cat.Species);
         cat.Breed = dto.Breed;
         cat.BirthDate = dto.BirthDate;
         cat.Gender = dto.Gender;
@@ -115,9 +117,17 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
             .FirstOrDefault();
 
         return new CatDto(
-            cat.Id, cat.Name, cat.Breed, cat.BirthDate,
+            cat.Id, cat.Name, cat.Species, cat.Breed, cat.BirthDate,
             cat.Gender, cat.Color, cat.PhotoUrl, cat.IsNeutered, cat.Notes,
             latestWeight, nextVaccine?.NextDueDate, nextVaccine?.VaccineType
         );
+    }
+
+    private static readonly string[] KnownSpecies = ["kedi", "kopek", "kus", "hamster", "tavsan", "diger"];
+
+    private static string NormalizeSpecies(string? raw, string fallback = "kedi")
+    {
+        var v = raw?.Trim().ToLowerInvariant();
+        return v is not null && KnownSpecies.Contains(v) ? v : fallback;
     }
 }

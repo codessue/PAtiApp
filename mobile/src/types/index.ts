@@ -7,6 +7,8 @@ export interface User {
 export interface Cat {
   id: string;
   name: string;
+  /** Tür: kedi | kopek | kus | hamster | tavsan | diger */
+  species: string;
   breed?: string;
   birthDate?: string;
   gender?: 'male' | 'female';

@@ -25,11 +25,12 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
-import { CAT_BREEDS } from '../../constants/vaccineTypes';
+import { BREEDS_BY_SPECIES, SPECIES_LIST, Species } from '../../constants/species';
 import { mediaUrl } from '../../utils/media';
 
 const schema = z.object({
-  name: z.string().min(1, 'Kedi adı zorunludur'),
+  name: z.string().min(1, 'İsim zorunludur'),
+  species: z.enum(['kedi', 'kopek', 'kus', 'hamster', 'tavsan', 'diger']),
   breed: z.string().optional(),
   gender: z.enum(['male', 'female']).optional(),
   color: z.string().optional(),
@@ -74,10 +75,11 @@ export const EditCatScreen = () => {
     }
   };
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
+      species: 'kedi',
       breed: undefined,
       gender: undefined,
       color: undefined,
@@ -91,6 +93,7 @@ export const EditCatScreen = () => {
     if (!cat) return;
     reset({
       name: cat.name,
+      species: (cat.species as Species) ?? 'kedi',
       breed: cat.breed,
       gender: cat.gender as 'male' | 'female' | undefined,
       color: cat.color,
@@ -110,7 +113,7 @@ export const EditCatScreen = () => {
       }
       nav.goBack();
     } catch {
-      Alert.alert('Hata', 'Kedi güncellenirken bir sorun oluştu.');
+      Alert.alert('Hata', 'Güncelleme sırasında bir sorun oluştu.');
     } finally {
       setLoading(false);
     }
@@ -120,7 +123,7 @@ export const EditCatScreen = () => {
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top }]}>
-      <Header title="Kedi Düzenle" onBack={() => nav.goBack()} />
+      <Header title="Dostu Düzenle" onBack={() => nav.goBack()} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {/* Photo picker */}
@@ -137,36 +140,71 @@ export const EditCatScreen = () => {
             </TouchableOpacity>
           </View>
 
+        {/* Species picker */}
         <Controller
           control={control}
-          name="name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input label="Kedinin Adı" onChangeText={onChange} onBlur={onBlur} value={value} error={errors.name?.message} />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="breed"
+          name="species"
           render={({ field: { onChange, value } }) => (
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Irk</Text>
+              <Text style={styles.label}>Tür</Text>
               <View style={styles.chipWrap}>
-                {CAT_BREEDS.map((breed) => {
-                  const selected = value === breed;
+                {SPECIES_LIST.map((s) => {
+                  const selected = value === s.key;
                   return (
                     <TouchableOpacity
-                      key={breed}
-                      onPress={() => onChange(selected ? undefined : breed)}
+                      key={s.key}
+                      onPress={() => {
+                        onChange(s.key);
+                        setValue('breed', undefined); // tür değişince ırk sıfırlanır
+                      }}
                       style={[styles.chip, selected && styles.chipSelected]}
                     >
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{breed}</Text>
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {s.emoji} {s.label}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
           )}
+        />
+
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input label="Adı" onChangeText={onChange} onBlur={onBlur} value={value} error={errors.name?.message} />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="breed"
+          render={({ field: { onChange, onBlur, value } }) => {
+            const breedOptions = BREEDS_BY_SPECIES[watch('species') as Species];
+            return breedOptions ? (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Irk</Text>
+                <View style={styles.chipWrap}>
+                  {breedOptions.map((breed) => {
+                    const selected = value === breed;
+                    return (
+                      <TouchableOpacity
+                        key={breed}
+                        onPress={() => onChange(selected ? undefined : breed)}
+                        style={[styles.chip, selected && styles.chipSelected]}
+                      >
+                        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{breed}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : (
+              <Input label="Irk / Cins (opsiyonel)" placeholder="Örn. Suriye hamsterı" onChangeText={onChange} onBlur={onBlur} value={value ?? ''} />
+            );
+          }}
         />
 
         <Controller

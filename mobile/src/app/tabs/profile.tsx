@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ChevronRight, Info, LogOut, Settings, User } from 'lucide-react-native';
+import { Camera, ChevronRight, Info, LogOut, Settings, Trash2, User } from 'lucide-react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
@@ -21,13 +21,43 @@ const getInitials = (name?: string): string =>
 
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
-  const { user, logout, avatarUri, setAvatarUri } = useAuthStore();
+  const { user, logout, deleteAccount, avatarUri, setAvatarUri } = useAuthStore();
 
   const handleLogout = () => {
     Alert.alert('Çıkış Yap', 'Hesabınızdan çıkmak istediğinize emin misiniz?', [
       { text: 'İptal', style: 'cancel' },
       { text: 'Çıkış Yap', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  // App Store 5.1.1(v): uygulama içinden kalıcı hesap silme. Çift onaylı.
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Hesabı Sil',
+      'Hesabınız, dostlarınız ve tüm sağlık kayıtlarınız KALICI olarak silinecek. Bu işlem geri alınamaz.',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Devam Et',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Emin misiniz?', 'Tüm verileriniz kalıcı olarak silinecek.', [
+              { text: 'Vazgeç', style: 'cancel' },
+              {
+                text: 'Hesabımı Kalıcı Olarak Sil',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteAccount();
+                  } catch {
+                    Alert.alert('Hata', 'Hesap silinemedi. Lütfen tekrar deneyin.');
+                  }
+                },
+              },
+            ]),
+        },
+      ]
+    );
   };
 
   const pickAvatar = async () => {
@@ -103,6 +133,11 @@ export const ProfileScreen = () => {
           onPress={handleLogout}
           icon={<LogOut size={20} color={colors.destructive} strokeWidth={2.2} />}
         />
+
+        <TouchableOpacity style={styles.deleteRow} activeOpacity={0.7} onPress={handleDeleteAccount}>
+          <Trash2 size={16} color={colors.mutedForeground} strokeWidth={2} />
+          <Text style={styles.deleteText}>Hesabımı Kalıcı Olarak Sil</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -171,4 +206,13 @@ const styles = StyleSheet.create({
   infoRowLast: { borderBottomWidth: 0 },
   infoLabel: { fontFamily: fonts.sans, fontSize: 15, color: colors.foreground },
   infoValue: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.mutedForeground },
+
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  deleteText: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground, textDecorationLine: 'underline' },
 });

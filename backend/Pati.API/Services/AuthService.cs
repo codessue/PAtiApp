@@ -9,7 +9,7 @@ using Pati.API.Repositories;
 
 namespace Pati.API.Services;
 
-public class AuthService(IUnitOfWork uow, IConfiguration config)
+public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnvironment env)
 {
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
@@ -73,6 +73,37 @@ public class AuthService(IUnitOfWork uow, IConfiguration config)
         user.RefreshToken = null;
         user.RefreshTokenExpiry = null;
         uow.Users.Update(user);
+        await uow.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Hesabı ve tüm verileri kalıcı olarak siler (App Store 5.1.1(v) gereksinimi).
+    /// FK'ler cascade olduğundan kullanıcı satırının silinmesi kedileri, aşıları,
+    /// kiloları ve ilaçları da siler; yüklenen fotoğraflar en-iyi-çaba ile temizlenir.
+    /// </summary>
+    public async Task DeleteAccountAsync(Guid userId)
+    {
+        var user = await uow.Users.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("Kullanıcı bulunamadı.");
+
+        // Fotoğraf dosyalarını temizle (KVKK — kişisel veri bırakma).
+        var cats = await uow.Cats.FindAsync(c => c.UserId == userId);
+        foreach (var cat in cats)
+        {
+            if (string.IsNullOrWhiteSpace(cat.PhotoUrl)) continue;
+            try
+            {
+                var relative = cat.PhotoUrl.TrimStart('/');
+                var path = Path.Combine(env.WebRootPath ?? "wwwroot", relative.Replace("uploads/", "uploads" + Path.DirectorySeparatorChar));
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch
+            {
+                // en-iyi-çaba: dosya silinemese de hesap silme devam eder
+            }
+        }
+
+        uow.Users.Remove(user);
         await uow.SaveChangesAsync();
     }
 

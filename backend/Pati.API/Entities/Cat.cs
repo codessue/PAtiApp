@@ -5,6 +5,8 @@ public class Cat
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; }
     public string Name { get; set; } = string.Empty;
+    /// <summary>Evcil hayvan türü: kedi, kopek, kus, hamster, tavsan, diger.</summary>
+    public string Species { get; set; } = "kedi";
     public string? Breed { get; set; }
     public DateOnly? BirthDate { get; set; }
     public string? Gender { get; set; }

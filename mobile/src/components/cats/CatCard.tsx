@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronRight, Scale, Syringe } from 'lucide-react-native'
 import { colors } from '../../constants/colors';
 import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { Cat } from '../../types';
+import { getSpecies } from '../../constants/species';
 import { getCatAge } from '../../utils/dateHelpers';
 import { Avatar } from '../ui/Avatar';
 
@@ -29,7 +30,7 @@ export const CatCard: React.FC<CatCardProps> = ({ cat, onPress }) => {
         </View>
 
         <Text style={styles.details} numberOfLines={1}>
-          {cat.breed ?? 'Irk bilinmiyor'} • {getCatAge(cat.birthDate)}
+          {getSpecies(cat.species).emoji} {cat.breed ?? getSpecies(cat.species).label} • {getCatAge(cat.birthDate)}
         </Text>
 
         <View style={styles.chips}>

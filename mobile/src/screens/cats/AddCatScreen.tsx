@@ -25,14 +25,15 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Header } from '../../components/ui/Header';
-import { CAT_BREEDS } from '../../constants/vaccineTypes';
+import { BREEDS_BY_SPECIES, SPECIES_LIST, Species } from '../../constants/species';
 
 // Light-blue gender accent (per design; not part of the core token palette).
 const GENDER_BG = '#E8EEF5';
 const GENDER_FG = '#5B7FA6';
 
 const schema = z.object({
-  name: z.string().min(1, 'Kedi adı zorunludur'),
+  name: z.string().min(1, 'İsim zorunludur'),
+  species: z.enum(['kedi', 'kopek', 'kus', 'hamster', 'tavsan', 'diger']),
   breed: z.string().optional(),
   gender: z.enum(['male', 'female']).optional(),
   color: z.string().optional(),
@@ -57,10 +58,12 @@ export const AddCatScreen = () => {
     nav.setOptions({ headerShown: false });
   }, [nav]);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { isNeutered: false },
+    defaultValues: { isNeutered: false, species: 'kedi' },
   });
+  const species = watch('species') as Species;
+  const breedOptions = BREEDS_BY_SPECIES[species];
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -90,7 +93,7 @@ export const AddCatScreen = () => {
       }
       nav.goBack();
     } catch {
-      Alert.alert('Hata', 'Kedi eklenirken bir sorun oluştu.');
+      Alert.alert('Hata', 'Kayıt sırasında bir sorun oluştu.');
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,7 @@ export const AddCatScreen = () => {
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top }]}>
-      <Header title="Kedi Ekle" onBack={() => nav.goBack()} />
+      <Header title="Dost Ekle" onBack={() => nav.goBack()} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {/* Photo picker */}
@@ -115,35 +118,69 @@ export const AddCatScreen = () => {
             </TouchableOpacity>
           </View>
 
+        {/* Species picker */}
+        <Controller
+          control={control}
+          name="species"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Tür</Text>
+              <View style={styles.chipWrap}>
+                {SPECIES_LIST.map((s) => {
+                  const selected = value === s.key;
+                  return (
+                    <TouchableOpacity
+                      key={s.key}
+                      onPress={() => {
+                        onChange(s.key);
+                        setValue('breed', undefined); // tür değişince ırk sıfırlanır
+                      }}
+                      style={[styles.chip, selected && styles.chipSelected]}
+                    >
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {s.emoji} {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        />
+
         <Controller
           control={control}
           name="name"
           render={({ field: { onChange, onBlur, value } }) => (
-            <Input label="Kedinin Adı" placeholder="Örn. Tarçın" onChangeText={onChange} onBlur={onBlur} value={value} error={errors.name?.message} />
+            <Input label="Adı" placeholder="Örn. Tarçın" onChangeText={onChange} onBlur={onBlur} value={value} error={errors.name?.message} />
           )}
         />
 
         <Controller
           control={control}
           name="breed"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Irk</Text>
-              <View style={styles.chipWrap}>
-                {CAT_BREEDS.map((breed) => {
-                  const selected = value === breed;
-                  return (
-                    <TouchableOpacity
-                      key={breed}
-                      onPress={() => onChange(selected ? undefined : breed)}
-                      style={[styles.chip, selected && styles.chipSelected]}
-                    >
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{breed}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+          render={({ field: { onChange, onBlur, value } }) => (
+            breedOptions ? (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Irk</Text>
+                <View style={styles.chipWrap}>
+                  {breedOptions.map((breed) => {
+                    const selected = value === breed;
+                    return (
+                      <TouchableOpacity
+                        key={breed}
+                        onPress={() => onChange(selected ? undefined : breed)}
+                        style={[styles.chip, selected && styles.chipSelected]}
+                      >
+                        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{breed}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            ) : (
+              <Input label="Irk / Cins (opsiyonel)" placeholder="Örn. Suriye hamsterı" onChangeText={onChange} onBlur={onBlur} value={value ?? ''} />
+            )
           )}
         />
 
@@ -202,7 +239,7 @@ export const AddCatScreen = () => {
             <View style={styles.toggleTile}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.toggleTitle}>Kısırlaştırılmış</Text>
-                <Text style={styles.toggleSub}>Kediniz kısırlaştırıldı mı?</Text>
+                <Text style={styles.toggleSub}>Dostunuz kısırlaştırıldı mı?</Text>
               </View>
               <Switch
                 value={value}
@@ -232,7 +269,7 @@ export const AddCatScreen = () => {
           )}
         />
 
-          <Button title="Kedi Ekle" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
+          <Button title="Kaydet" onPress={handleSubmit(onSubmit)} loading={loading} style={styles.submit} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

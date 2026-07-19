@@ -37,6 +37,7 @@ builder.Services.AddScoped<WeightService>();
 builder.Services.AddScoped<MedicationService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AssistantService>();
+builder.Services.AddMemoryCache(); // asistan günlük sorgu hakları
 builder.Services.AddScoped<VaccineReminderJob>();
 
 builder.Services.AddHttpClient();

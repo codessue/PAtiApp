@@ -1,18 +1,27 @@
 using System.Text;
 using System.Text.Json;
-using Anthropic;
-using Anthropic.Models.Messages;
+using Microsoft.Extensions.Caching.Memory;
 using Pati.API.DTOs.Assistant;
 
 namespace Pati.API.Services;
 
 /// <summary>
-/// Kedi semptomları için Claude tabanlı ön-değerlendirme üretir. Teşhis koymaz;
-/// aciliyet seviyesi, olası nedenler ve veterinere sorulacak sorular önerir.
-/// API anahtarı yalnızca sunucuda tutulur — mobil istemci asla görmez.
+/// Kedi semptomları için Google Gemini tabanlı ön-değerlendirme üretir. Teşhis
+/// koymaz; aciliyet seviyesi, olası nedenler ve veterinere sorulacak sorular önerir.
+/// Gemini'nin ücretsiz katmanı kullanılır (aistudio.google.com — kart gerekmez);
+/// toplam kullanım ücretsiz limitte kalsın diye kullanıcı başına günlük sorgu
+/// sınırı uygulanır. API anahtarı yalnızca sunucuda tutulur.
 /// </summary>
-public class AssistantService(IConfiguration config, CatService catService, ILogger<AssistantService> logger)
+public class AssistantService(
+    IConfiguration config,
+    CatService catService,
+    IHttpClientFactory httpFactory,
+    IMemoryCache cache,
+    ILogger<AssistantService> logger)
 {
+    private const int DefaultDailyLimit = 5;
+    private const string DefaultModel = "gemini-2.5-flash";
+
     // Yanıtta her zaman bulunması için uyarı metni modele bırakılmaz, sunucuda eklenir.
     private const string Disclaimer =
         "Bu değerlendirme yalnızca bilgilendirme amaçlıdır ve veteriner muayenesinin " +
@@ -53,47 +62,18 @@ public class AssistantService(IConfiguration config, CatService catService, ILog
         var apiKey = ResolveApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException(
-                "Yapay zekâ asistanı şu anda yapılandırılmamış. (Sunucuda ANTHROPIC_API_KEY tanımlı değil.)");
+                "Yapay zekâ asistanı şu anda yapılandırılmamış. (Sunucuda GEMINI_API_KEY tanımlı değil.)");
+
+        // Günlük ücretsiz hak kontrolü — hak yalnızca başarılı yanıtta düşülür.
+        var dailyLimit = config.GetValue("Assistant:DailyLimit", DefaultDailyLimit);
+        var quotaKey = $"assistant-quota:{userId}:{DateTime.UtcNow:yyyyMMdd}";
+        var used = cache.TryGetValue(quotaKey, out int u) ? u : 0;
+        if (used >= dailyLimit)
+            throw new InvalidOperationException(
+                $"Bugünlük ücretsiz değerlendirme hakkın doldu ({dailyLimit}/{dailyLimit}). Yarın tekrar deneyebilirsin.");
 
         var userPrompt = await BuildUserPromptAsync(userId, request);
-
-        var client = new AnthropicClient { ApiKey = apiKey };
-
-        Message response;
-        try
-        {
-            response = await client.Messages.Create(new MessageCreateParams
-            {
-                Model = Model.ClaudeOpus4_8,
-                MaxTokens = 2048,
-                System = new List<TextBlockParam> { new() { Text = SystemPrompt } },
-                Thinking = new ThinkingConfigAdaptive(),
-                OutputConfig = new OutputConfig
-                {
-                    Effort = Effort.Medium,
-                    Format = new JsonOutputFormat { Schema = BuildSchema() },
-                },
-                Messages = [new() { Role = Role.User, Content = userPrompt }],
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Anthropic isteği başarısız oldu.");
-            throw new InvalidOperationException("Asistan şu anda yanıt veremedi. Lütfen birazdan tekrar deneyin.");
-        }
-
-        if (response.StopReason == "refusal")
-            throw new InvalidOperationException(
-                "Asistan bu soruya yanıt veremedi. Lütfen belirtileri farklı bir şekilde anlatmayı deneyin.");
-
-        var text = response.Content
-            .Select(b => b.Value)
-            .OfType<TextBlock>()
-            .Select(t => t.Text)
-            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
-
-        if (string.IsNullOrWhiteSpace(text))
-            throw new InvalidOperationException("Asistan boş bir yanıt döndürdü. Lütfen tekrar deneyin.");
+        var text = await CallGeminiAsync(apiKey, userPrompt);
 
         ModelOutput? parsed;
         try
@@ -112,6 +92,9 @@ public class AssistantService(IConfiguration config, CatService catService, ILog
         if (parsed is null)
             throw new InvalidOperationException("Asistan yanıtı işlenemedi. Lütfen tekrar deneyin.");
 
+        // Başarılı yanıt — günlük hakkı şimdi düş (UTC gece yarısına kadar geçerli).
+        cache.Set(quotaKey, used + 1, DateTime.UtcNow.Date.AddDays(1));
+
         return new SymptomCheckResponseDto(
             Urgency: NormalizeUrgency(parsed.Urgency),
             Summary: parsed.Summary ?? string.Empty,
@@ -122,13 +105,90 @@ public class AssistantService(IConfiguration config, CatService catService, ILog
         );
     }
 
-    // appsettings'teki "${ANTHROPIC_API_KEY}" yer tutucusu çözülmemişse gerçek
+    private async Task<string> CallGeminiAsync(string apiKey, string userPrompt)
+    {
+        var model = config["Gemini:Model"] ?? DefaultModel;
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
+
+        var body = new
+        {
+            systemInstruction = new { parts = new[] { new { text = SystemPrompt } } },
+            contents = new[]
+            {
+                new { role = "user", parts = new[] { new { text = userPrompt } } },
+            },
+            generationConfig = new
+            {
+                responseMimeType = "application/json",
+                responseSchema = BuildSchema(),
+                maxOutputTokens = 2048,
+                temperature = 0.4,
+            },
+        };
+
+        HttpResponseMessage response;
+        string responseBody;
+        try
+        {
+            var client = httpFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(45);
+            using var req = new HttpRequestMessage(HttpMethod.Post, url);
+            req.Headers.Add("x-goog-api-key", apiKey);
+            req.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            response = await client.SendAsync(req);
+            responseBody = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Gemini isteği gönderilemedi.");
+            throw new InvalidOperationException("Asistan şu anda yanıt veremedi. Lütfen birazdan tekrar deneyin.");
+        }
+
+        if ((int)response.StatusCode == 429)
+            throw new InvalidOperationException(
+                "Asistan şu anda çok yoğun (ücretsiz kullanım sınırı). Lütfen bir dakika sonra tekrar dene.");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Gemini hata döndürdü ({Status}): {Body}", (int)response.StatusCode, responseBody);
+            throw new InvalidOperationException("Asistan şu anda yanıt veremedi. Lütfen birazdan tekrar deneyin.");
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var text = doc.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text")
+                .GetString();
+
+            if (string.IsNullOrWhiteSpace(text))
+                throw new InvalidOperationException("Asistan boş bir yanıt döndürdü. Lütfen tekrar deneyin.");
+
+            return text;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Aday üretilmemiş olabilir (ör. güvenlik filtresi) — gövdeyi logla.
+            logger.LogError(ex, "Gemini yanıtı beklenen biçimde değil: {Body}", responseBody);
+            throw new InvalidOperationException(
+                "Asistan bu soruya yanıt veremedi. Lütfen belirtileri farklı bir şekilde anlatmayı deneyin.");
+        }
+    }
+
+    // appsettings'teki "${GEMINI_API_KEY}" yer tutucusu çözülmemişse gerçek
     // ortam değişkenine düş.
     private string? ResolveApiKey()
     {
-        var key = config["Anthropic:ApiKey"];
+        var key = config["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(key) || key.StartsWith("${"))
-            key = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+            key = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
         return key;
     }
 
@@ -176,27 +236,24 @@ public class AssistantService(IConfiguration config, CatService catService, ILog
         return v is "acil" or "yakinda" or "izle" or "bilgi" ? v : "izle";
     }
 
-    private static Dictionary<string, JsonElement> BuildSchema()
+    // Gemini responseSchema — OpenAPI alt kümesi (additionalProperties desteklenmez).
+    private static object BuildSchema() => new
     {
-        var schema = new
+        type = "object",
+        properties = new
         {
-            type = "object",
-            properties = new
+            urgency = new
             {
-                urgency = new { type = "string", @enum = new[] { "acil", "yakinda", "izle", "bilgi" } },
-                summary = new { type = "string", description = "Durumun 1-2 cümlelik özeti." },
-                possibleCauses = new { type = "array", items = new { type = "string" } },
-                recommendations = new { type = "array", items = new { type = "string" } },
-                vetQuestions = new { type = "array", items = new { type = "string" } },
+                type = "string",
+                @enum = new[] { "acil", "yakinda", "izle", "bilgi" },
             },
-            required = new[] { "urgency", "summary", "possibleCauses", "recommendations", "vetQuestions" },
-            additionalProperties = false,
-        };
-
-        // JsonOutputFormat.Schema -> Dictionary<string, JsonElement>
-        var json = JsonSerializer.SerializeToElement(schema);
-        return json.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
-    }
+            summary = new { type = "string", description = "Durumun 1-2 cümlelik özeti." },
+            possibleCauses = new { type = "array", items = new { type = "string" } },
+            recommendations = new { type = "array", items = new { type = "string" } },
+            vetQuestions = new { type = "array", items = new { type = "string" } },
+        },
+        required = new[] { "urgency", "summary", "possibleCauses", "recommendations", "vetQuestions" },
+    };
 
     private sealed record ModelOutput(
         string? Urgency,

@@ -201,7 +201,7 @@ export const HomeScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Hatırlatıcılar</Text>
           <TouchableOpacity onPress={() => nav.navigate('Notes' as never)} activeOpacity={0.7}>
-            <Text style={styles.seeAll}>Notlar</Text>
+            <Text style={styles.seeAll}>Günlük</Text>
           </TouchableOpacity>
         </View>
 

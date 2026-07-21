@@ -86,6 +86,10 @@ export interface Note {
   body: string;
   /** ISO datetime. When set & in the future, a local reminder notification fires. */
   reminderAt?: string;
+  /** Günlük: kayda eklenen fotoğrafın cihazdaki URI'si. */
+  photoUri?: string;
+  /** Günlük: o günkü ruh hali (bkz. constants/moods.ts). */
+  mood?: string;
   /** expo-notifications id for the scheduled reminder, so it can be cancelled. */
   notificationId?: string;
   pinned: boolean;

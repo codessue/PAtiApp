@@ -67,7 +67,7 @@ const TAB_META: Record<keyof TabParamList, { icon: LucideIcon; label: string }> 
   Home:    { icon: HomeIcon,    label: 'Ana Sayfa' },
   Cats:    { icon: PawPrint,    label: 'Dostlarım' },
   Health:  { icon: HeartPulse,  label: 'Sağlık' },
-  Notes:   { icon: NotebookPen, label: 'Notlar' },
+  Notes:   { icon: NotebookPen, label: 'Günlük' },
   Profile: { icon: User,        label: 'Profil' },
 };
 

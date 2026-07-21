@@ -15,7 +15,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Bell, Trash2 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Bell, ImagePlus, Trash2, X } from 'lucide-react-native';
+import { Image } from 'react-native';
 import { useNotesStore } from '../../stores/notesStore';
 import { useCats } from '../../hooks/useCats';
 import { colors } from '../../constants/colors';
@@ -23,6 +25,7 @@ import { fonts, radius, spacing } from '../../constants/typography';
 import { Header } from '../../components/ui/Header';
 import { Button } from '../../components/ui/Button';
 import { NOTE_CATEGORIES } from '../../constants/noteCategories';
+import { MOODS } from '../../constants/moods';
 import { NoteCategory } from '../../types';
 import { formatDateTime } from '../../utils/dateHelpers';
 
@@ -47,6 +50,8 @@ export const NoteEditorScreen = () => {
   const [body, setBody] = useState(existing?.body ?? '');
   const [category, setCategory] = useState<NoteCategory>(existing?.category ?? 'general');
   const [catId, setCatId] = useState<string | undefined>(existing?.catId ?? presetCatId);
+  const [photoUri, setPhotoUri] = useState<string | undefined>(existing?.photoUri);
+  const [mood, setMood] = useState<string | undefined>(existing?.mood);
   const [reminderOn, setReminderOn] = useState(!!existing?.reminderAt);
   const [reminderDate, setReminderDate] = useState<Date>(
     existing?.reminderAt ? new Date(existing.reminderAt) : defaultReminder()
@@ -74,7 +79,7 @@ export const NoteEditorScreen = () => {
         setSaving(false);
         return;
       }
-      await saveNote({ id: noteId, catId, category, title, body, reminderAt });
+      await saveNote({ id: noteId, catId, category, title, body, reminderAt, photoUri, mood });
       nav.goBack();
     } catch {
       Alert.alert('Hata', 'Not kaydedilirken bir sorun oluştu.');
@@ -96,6 +101,23 @@ export const NoteEditorScreen = () => {
         },
       },
     ]);
+  };
+
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('İzin Gerekli', 'Fotoğraf seçebilmek için galeri erişim izni vermeniz gerekiyor.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
   };
 
   // --- reminder picker handlers ---
@@ -213,6 +235,45 @@ export const NoteEditorScreen = () => {
             multiline
             textAlignVertical="top"
           />
+
+          {/* Mood (günlük) */}
+          <Text style={styles.fieldLabel}>Bugün nasıldı? (opsiyonel)</Text>
+          <View style={styles.moodRow}>
+            {MOODS.map((m) => {
+              const active = mood === m.key;
+              return (
+                <TouchableOpacity
+                  key={m.key}
+                  activeOpacity={0.8}
+                  onPress={() => setMood(active ? undefined : m.key)}
+                  style={[styles.moodBtn, active && styles.moodBtnActive]}
+                >
+                  <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                  <Text style={[styles.moodLabel, active && styles.moodLabelActive]}>{m.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Photo (günlük) */}
+          <Text style={styles.fieldLabel}>Fotoğraf (opsiyonel)</Text>
+          {photoUri ? (
+            <View style={styles.photoWrap}>
+              <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
+              <TouchableOpacity
+                style={styles.photoRemove}
+                onPress={() => setPhotoUri(undefined)}
+                accessibilityLabel="Fotoğrafı kaldır"
+              >
+                <X size={16} color={colors.primaryForeground} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.photoPicker} activeOpacity={0.8} onPress={pickPhoto}>
+              <ImagePlus size={22} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.photoPickerText}>Bir anı fotoğrafı ekle</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Reminder */}
           <View style={styles.reminderCard}>
@@ -338,6 +399,49 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.foreground,
   },
+
+  moodRow: { flexDirection: 'row', gap: spacing.sm },
+  moodBtn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  moodBtnActive: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  moodEmoji: { fontSize: 22 },
+  moodLabel: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
+  moodLabelActive: { color: colors.primary, fontFamily: fonts.sansMedium },
+
+  photoWrap: { borderRadius: radius.lg, overflow: 'hidden' },
+  photo: { width: '100%', height: 180 },
+  photoRemove: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(28,26,24,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(196,98,45,0.05)',
+  },
+  photoPickerText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
 
   reminderCard: {
     backgroundColor: colors.card,

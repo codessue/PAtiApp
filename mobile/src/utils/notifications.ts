@@ -139,6 +139,42 @@ export async function scheduleNoteReminder(note: NoteReminderInput): Promise<str
   });
 }
 
+const DAILY_DIARY_ID = 'daily-diary-reminder';
+
+// Her akşam 20:30'da nazik bir "bugünü günlüğe yaz" hatırlatması kurar.
+export async function scheduleDailyDiaryReminder(petName?: string): Promise<boolean> {
+  const granted = await requestNotificationPermission();
+  if (!granted) return false;
+
+  await cancelDailyDiaryReminder();
+  await Notifications.scheduleNotificationAsync({
+    identifier: DAILY_DIARY_ID,
+    content: {
+      title: 'Günlük Zamanı 🐾',
+      body: petName
+        ? `Bugün ${petName} ile neler yaşadınız? Bir anı yazın.`
+        : 'Bugün dostlarınla neler yaşadın? Bir anı yaz.',
+      data: { type: 'diary' },
+      sound: 'default',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 20,
+      minute: 30,
+      channelId: 'reminders',
+    },
+  });
+  return true;
+}
+
+export async function cancelDailyDiaryReminder(): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(DAILY_DIARY_ID);
+  } catch {
+    // yoksa sorun değil
+  }
+}
+
 export async function cancelNoteReminder(notificationId?: string): Promise<void> {
   if (!notificationId) return;
   try {

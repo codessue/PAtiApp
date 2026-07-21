@@ -78,6 +78,8 @@ export interface NoteInput {
   title: string;
   body: string;
   reminderAt?: string;
+  photoUri?: string;
+  mood?: string;
   pinned?: boolean;
 }
 
@@ -146,6 +148,8 @@ export const useNotesStore = create<NotesState>((set, get) => ({
       title: input.title.trim(),
       body: input.body.trim(),
       reminderAt: input.reminderAt,
+      photoUri: input.photoUri,
+      mood: input.mood,
       notificationId,
       pinned: input.pinned ?? existing?.pinned ?? false,
       createdAt: existing?.createdAt ?? now,

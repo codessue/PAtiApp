@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -9,17 +9,20 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Plus, Settings, Syringe } from 'lucide-react-native';
+import { BookOpen, ChevronLeft, Plus, Settings, Syringe } from 'lucide-react-native';
 import { RootStackParamList } from '../../app/Navigation';
 import { useCat, useDeleteCat } from '../../hooks/useCats';
 import { useWeightLogs } from '../../hooks/useWeightLogs';
+import { useNotesStore } from '../../stores/notesStore';
 import { colors } from '../../constants/colors';
 import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
+import { getMood } from '../../constants/moods';
 import {
+  formatDate,
   getCatAge,
   getVaccineUrgencyColor,
   getVaccineUrgencyLabel,
@@ -28,7 +31,7 @@ import { mediaUrl } from '../../utils/media';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
-const TABS = ['Özet', 'Aşılar', 'Kilo', 'İlaçlar'] as const;
+const TABS = ['Özet', 'Günlük', 'Aşılar', 'Kilo', 'İlaçlar'] as const;
 type TabKey = typeof TABS[number];
 
 // Light-blue gender accent (per design; not part of the core token palette).
@@ -43,12 +46,22 @@ export const CatDetailScreen = () => {
   const { data: cat } = useCat(catId);
   const { mutateAsync: deleteCat } = useDeleteCat();
   const { data: weightLogs } = useWeightLogs(catId);
+  const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
   const [activeTab, setActiveTab] = useState<TabKey>('Özet');
 
   // Full-bleed hero needs the native stack header hidden (presentation only).
   useLayoutEffect(() => {
     nav.setOptions({ headerShown: false });
   }, [nav]);
+
+  useEffect(() => { if (!notesLoaded) loadNotes(); }, [notesLoaded, loadNotes]);
+  useFocusEffect(React.useCallback(() => { loadNotes(); }, [loadNotes]));
+
+  // Bu dostun günlük kayıtları (en yeni en üstte).
+  const diaryEntries = useMemo(
+    () => notes.filter((n) => n.catId === catId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [notes, catId]
+  );
 
   if (!cat) return null;
 
@@ -69,6 +82,7 @@ export const CatDetailScreen = () => {
   const onFabPress = () => {
     if (activeTab === 'Kilo') nav.navigate('AddWeight', { catId: cat.id });
     else if (activeTab === 'İlaçlar') nav.navigate('AddMedication', { catId: cat.id });
+    else if (activeTab === 'Günlük') nav.navigate('NoteEditor', { catId: cat.id });
     else nav.navigate('AddVaccine', { catId: cat.id });
   };
 
@@ -225,6 +239,51 @@ export const CatDetailScreen = () => {
             </View>
           )}
 
+          {activeTab === 'Günlük' && (
+            <View style={{ gap: spacing.md }}>
+              {diaryEntries.length === 0 ? (
+                <View style={styles.diaryEmpty}>
+                  <BookOpen size={30} color={colors.mutedForeground} strokeWidth={1.8} />
+                  <Text style={styles.diaryEmptyTitle}>{cat.name} için günlük boş</Text>
+                  <Text style={styles.diaryEmptyText}>
+                    Bugün {cat.name} ile yaşadığın bir anı, gözlem ya da fotoğraf ekle.
+                  </Text>
+                  <Button
+                    title="İlk Anıyı Ekle"
+                    onPress={() => nav.navigate('NoteEditor', { catId: cat.id })}
+                    style={{ marginTop: spacing.sm }}
+                  />
+                </View>
+              ) : (
+                diaryEntries.map((n) => {
+                  const mood = getMood(n.mood);
+                  return (
+                    <TouchableOpacity
+                      key={n.id}
+                      activeOpacity={0.85}
+                      onPress={() => nav.navigate('NoteEditor', { noteId: n.id })}
+                      style={styles.diaryCard}
+                    >
+                      {n.photoUri ? (
+                        <Image source={{ uri: n.photoUri }} style={styles.diaryPhoto} resizeMode="cover" />
+                      ) : null}
+                      <View style={styles.diaryCardBody}>
+                        <View style={styles.diaryCardTop}>
+                          <Text style={styles.diaryDate}>{formatDate(n.createdAt)}</Text>
+                          {mood ? <Text style={styles.diaryMood}>{mood.emoji} {mood.label}</Text> : null}
+                        </View>
+                        {n.title ? <Text style={styles.diaryCardTitle}>{n.title}</Text> : null}
+                        {n.body ? (
+                          <Text style={styles.diaryCardText} numberOfLines={4}>{n.body}</Text>
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </View>
+          )}
+
           {activeTab === 'Aşılar' && (
             <Button title="Aşı Geçmişini Görüntüle" onPress={() => nav.navigate('VaccineList', { catId: cat.id, catName: cat.name })} />
           )}
@@ -259,6 +318,30 @@ export const CatDetailScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+
+  diaryEmpty: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  diaryEmptyTitle: { fontFamily: fonts.serifSemi, fontSize: 17, color: colors.foreground, marginTop: spacing.xs },
+  diaryEmptyText: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground, textAlign: 'center', lineHeight: 20 },
+  diaryCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  diaryPhoto: { width: '100%', height: 170 },
+  diaryCardBody: { padding: spacing.lg, gap: spacing.xs },
+  diaryCardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' },
+  diaryDate: { fontFamily: fonts.sansBold, fontSize: 13, color: colors.primary },
+  diaryMood: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.foreground },
+  diaryCardTitle: { fontFamily: fonts.serifSemi, fontSize: 16, color: colors.foreground },
+  diaryCardText: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 21, color: colors.foreground },
 
   hero: { width: '100%', height: 280, position: 'relative', backgroundColor: 'rgba(212,165,160,0.20)' },
   heroImage: { width: '100%', height: 280 },
@@ -303,10 +386,10 @@ const styles = StyleSheet.create({
   statLabel: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   statValue: { fontFamily: fonts.sansBold, fontSize: 15, color: colors.foreground, textAlign: 'center' },
 
-  tabBar: { flexDirection: 'row', marginTop: spacing.xl, paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabBar: { flexDirection: 'row', marginTop: spacing.xl, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
-  tabText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.mutedForeground },
+  tabText: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.mutedForeground },
   tabTextActive: { color: colors.primary, fontFamily: fonts.sansBold },
 
   tabContent: { padding: 24 },

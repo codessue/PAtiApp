@@ -76,6 +76,16 @@ public class AuthService(IUnitOfWork uow, IConfiguration config)
         await uow.SaveChangesAsync();
     }
 
+    public async Task DeleteAccountAsync(Guid userId)
+    {
+        var user = await uow.Users.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("Kullanıcı bulunamadı.");
+
+        // Kediler, aşılar, kilo ve ilaç kayıtları veritabanında cascade ile silinir.
+        uow.Users.Remove(user);
+        await uow.SaveChangesAsync();
+    }
+
     public async Task UpdatePushTokenAsync(Guid userId, string pushToken)
     {
         var user = await uow.Users.GetByIdAsync(userId)

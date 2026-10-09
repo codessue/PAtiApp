@@ -1,8 +1,13 @@
 import axios, { AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { ApiResponse } from '../types';
+import { config } from '../constants/config';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080/api';
+const BASE_URL = config.apiUrl;
+
+// Refresh token da geçersizse oturumu kapatmak için authStore tarafından ayarlanır.
+let onSessionExpired: (() => void) | null = null;
+export const setOnSessionExpired = (cb: () => void) => { onSessionExpired = cb; };
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -21,7 +26,9 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const original = error.config as typeof error.config & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthRoute = original?.url?.startsWith('/auth/') ?? false;
+
+    if (error.response?.status === 401 && original && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
@@ -41,6 +48,8 @@ api.interceptors.response.use(
       } catch {
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
+        await SecureStore.deleteItemAsync('user');
+        onSessionExpired?.();
       }
     }
     return Promise.reject(error);
@@ -55,6 +64,7 @@ export const authApi = {
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
   logout: () => api.post('/auth/logout'),
+  deleteAccount: () => api.delete('/auth/account'),
   updatePushToken: (expoPushToken: string) =>
     api.put('/auth/push-token', { expoPushToken }),
 };

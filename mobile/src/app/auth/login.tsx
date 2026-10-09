@@ -112,10 +112,6 @@ export const LoginScreen: React.FC<Props> = ({ onNavigateToRegister }) => {
             )}
           />
 
-          <TouchableOpacity style={styles.forgotLink} activeOpacity={0.7}>
-            <Text style={styles.forgotText}>Şifremi Unuttum</Text>
-          </TouchableOpacity>
-
           <Button
             title="Giriş Yap"
             onPress={handleSubmit(onSubmit)}
@@ -151,9 +147,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.foreground, letterSpacing: -0.6 },
   subtitle: { fontFamily: fonts.sans, fontSize: 16, color: colors.mutedForeground, marginTop: spacing.xs, lineHeight: 24 },
   form: { marginTop: spacing.xl },
-  forgotLink: { alignSelf: 'flex-end', marginBottom: spacing.lg },
-  forgotText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
-  submitButton: { marginTop: spacing.xs },
+  submitButton: { marginTop: spacing.sm },
   footerLink: { alignItems: 'center', marginTop: spacing.xl },
   footerText: { fontFamily: fonts.sans, fontSize: 15, color: colors.mutedForeground },
   footerHighlight: { fontFamily: fonts.sansBold, color: colors.primary },

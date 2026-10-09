@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -39,7 +40,7 @@ export const CatDetailScreen = () => {
   const nav = useNavigation<Nav>();
   const route = useRoute();
   const { catId } = route.params as { catId: string };
-  const { data: cat } = useCat(catId);
+  const { data: cat, isError } = useCat(catId);
   const { mutateAsync: deleteCat } = useDeleteCat();
   const { data: weightLogs } = useWeightLogs(catId);
   const [activeTab, setActiveTab] = useState<TabKey>('Özet');
@@ -49,7 +50,24 @@ export const CatDetailScreen = () => {
     nav.setOptions({ headerShown: false });
   }, [nav]);
 
-  if (!cat) return null;
+  if (!cat) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        {isError ? (
+          <Text style={styles.mutedLine}>Kedi bilgileri yüklenemedi.</Text>
+        ) : (
+          <ActivityIndicator color={colors.primary} />
+        )}
+        <TouchableOpacity
+          style={[styles.circleBtn, styles.loadingBack, { top: insets.top + 8 }]}
+          activeOpacity={0.8}
+          onPress={() => nav.goBack()}
+        >
+          <ChevronLeft size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleDelete = () => {
     Alert.alert(
@@ -58,8 +76,12 @@ export const CatDetailScreen = () => {
       [
         { text: 'İptal', style: 'cancel' },
         { text: 'Sil', style: 'destructive', onPress: async () => {
-          await deleteCat(cat.id);
-          nav.goBack();
+          try {
+            await deleteCat(cat.id);
+            nav.goBack();
+          } catch {
+            Alert.alert('Hata', 'Kedi silinirken bir sorun oluştu.');
+          }
         }},
       ]
     );
@@ -258,6 +280,8 @@ export const CatDetailScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  centered: { alignItems: 'center', justifyContent: 'center' },
+  loadingBack: { position: 'absolute', left: 16 },
 
   hero: { width: '100%', height: 280, position: 'relative', backgroundColor: 'rgba(212,165,160,0.20)' },
   heroImage: { width: '100%', height: 280 },

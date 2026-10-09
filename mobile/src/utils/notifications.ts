@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { authApi } from '../services/api';
 import { Medication } from '../types';
 
@@ -39,7 +40,10 @@ export async function registerPushToken(): Promise<void> {
     const granted = await requestNotificationPermission();
     if (!granted) return;
 
-    const token = await Notifications.getExpoPushTokenAsync();
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    if (!projectId) return;
+
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
     await authApi.updatePushToken(token.data);
   } catch (error) {
     console.warn('Push token alınamadı:', error);

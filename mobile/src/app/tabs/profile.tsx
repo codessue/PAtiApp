@@ -1,8 +1,10 @@
-import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Info, LogOut, Settings, User } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import { ChevronRight, Info, LogOut, ShieldCheck, Trash2 } from 'lucide-react-native';
 import { useAuthStore } from '../../stores/authStore';
+import { config } from '../../constants/config';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
@@ -11,14 +13,43 @@ import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 
 const MENU = [
-  { icon: User, label: 'Hesap Bilgileri' },
-  { icon: Settings, label: 'Uygulama Ayarları' },
-  { icon: Info, label: 'Yardım ve Destek' },
+  { icon: ShieldCheck, label: 'Gizlilik Politikası', url: config.privacyPolicyUrl },
+  { icon: Info, label: 'Yardım ve Destek', url: config.supportUrl },
 ] as const;
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuthStore();
+  const { user, logout, deleteAccount } = useAuthStore();
+  const [deleting, setDeleting] = useState(false);
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert('Hata', 'Bağlantı açılamadı.'));
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Hesabı Sil',
+      'Hesabınız ve tüm kedi, aşı, kilo ve ilaç kayıtlarınız kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Hesabımı Sil',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteAccount();
+            } catch {
+              setDeleting(false);
+              Alert.alert('Hata', 'Hesap silinemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert('Çıkış Yap', 'Hesabınızdan çıkmak istediğinize emin misiniz?', [
@@ -41,8 +72,8 @@ export const ProfileScreen = () => {
 
         {/* Menu */}
         <View style={styles.menu}>
-          {MENU.map(({ icon: Icon, label }) => (
-            <TouchableOpacity key={label} style={styles.menuRow} activeOpacity={0.8}>
+          {MENU.map(({ icon: Icon, label, url }) => (
+            <TouchableOpacity key={label} style={styles.menuRow} activeOpacity={0.8} onPress={() => openUrl(url)}>
               <View style={styles.menuIcon}>
                 <Icon size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
@@ -56,7 +87,7 @@ export const ProfileScreen = () => {
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Versiyon</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
+            <Text style={styles.infoValue}>{APP_VERSION}</Text>
           </View>
           <View style={[styles.infoRow, styles.infoRowLast]}>
             <Text style={styles.infoLabel}>Dil</Text>
@@ -70,6 +101,22 @@ export const ProfileScreen = () => {
           onPress={handleLogout}
           icon={<LogOut size={20} color={colors.destructive} strokeWidth={2.2} />}
         />
+
+        <TouchableOpacity
+          style={styles.deleteRow}
+          activeOpacity={0.7}
+          onPress={confirmDeleteAccount}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator color={colors.destructive} />
+          ) : (
+            <>
+              <Trash2 size={18} color={colors.destructive} strokeWidth={2.2} />
+              <Text style={styles.deleteText}>Hesabımı Sil</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -110,4 +157,13 @@ const styles = StyleSheet.create({
   infoRowLast: { borderBottomWidth: 0 },
   infoLabel: { fontFamily: fonts.sans, fontSize: 15, color: colors.foreground },
   infoValue: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.mutedForeground },
+
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  deleteText: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.destructive },
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import { fonts, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Header } from '../../components/ui/Header';
+import { config } from '../../constants/config';
 
 const schema = z
   .object({
@@ -143,6 +145,17 @@ export const RegisterScreen: React.FC<Props> = ({ onNavigateToLogin }) => {
 
           <View style={styles.spacer} />
 
+          <Text style={styles.legal}>
+            Kayıt olarak{' '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL(config.privacyPolicyUrl).catch(() => {})}
+            >
+              Gizlilik Politikası
+            </Text>
+            'nı kabul etmiş olursunuz.
+          </Text>
+
           <Button
             title="Kayıt Ol"
             onPress={handleSubmit(onSubmit)}
@@ -167,6 +180,8 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: fonts.sans, fontSize: 16, color: colors.mutedForeground, marginTop: spacing.xs, lineHeight: 24 },
   form: { marginTop: spacing.xl },
   spacer: { flex: 1, minHeight: spacing.xl },
+  legal: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground, textAlign: 'center', marginBottom: spacing.md, lineHeight: 19 },
+  legalLink: { fontFamily: fonts.sansMedium, color: colors.primary, textDecorationLine: 'underline' },
   footerLink: { alignItems: 'center', marginTop: spacing.xl },
   footerText: { fontFamily: fonts.sans, fontSize: 15, color: colors.mutedForeground },
   footerHighlight: { fontFamily: fonts.sansBold, color: colors.primary },

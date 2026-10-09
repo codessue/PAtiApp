@@ -10,8 +10,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Check, Pill, Plus, Syringe } from 'lucide-react-native';
-import { RootStackParamList } from '../Navigation';
+import { RootStackParamList, TabParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
 import { useTodayMedications } from '../../hooks/useMedications';
@@ -32,6 +33,7 @@ type Nav = StackNavigationProp<RootStackParamList>;
 export const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
+  const tabNav = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const { user } = useAuthStore();
   const { data: cats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
@@ -135,7 +137,11 @@ export const HomeScreen = () => {
       <View>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Bugünkü İlaçlar</Text>
-          {totalMeds > 0 && <Text style={styles.seeAll}>Tümünü Gör</Text>}
+          {totalMeds > 0 && (
+            <TouchableOpacity onPress={() => tabNav.navigate('Health')} hitSlop={8}>
+              <Text style={styles.seeAll}>Tümünü Gör</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {!todayMeds || todayMeds.length === 0 ? (

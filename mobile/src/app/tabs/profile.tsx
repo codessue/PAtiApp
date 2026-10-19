@@ -1,7 +1,10 @@
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { ChevronRight, Info, LogOut, Settings, User } from 'lucide-react-native';
+import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
@@ -16,8 +19,11 @@ const MENU = [
   { icon: Info, label: 'Yardım ve Destek' },
 ] as const;
 
+type Nav = StackNavigationProp<RootStackParamList>;
+
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
+  const nav = useNavigation<Nav>();
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -38,6 +44,16 @@ export const ProfileScreen = () => {
           <Text style={styles.name}>{user?.name}</Text>
           <Text style={styles.email}>{user?.email}</Text>
         </View>
+
+        {/* Food support */}
+        <TouchableOpacity style={styles.supportCard} activeOpacity={0.85} onPress={() => nav.navigate('FoodSupport')}>
+          <Text style={styles.supportEmoji}>🐈</Text>
+          <View style={styles.supportText}>
+            <Text style={styles.supportTitle}>Mama Desteği</Text>
+            <Text style={styles.supportBody}>Sokak kedilerinin mamasına destek ol</Text>
+          </View>
+          <ChevronRight size={20} color={colors.primary} />
+        </TouchableOpacity>
 
         {/* Menu */}
         <View style={styles.menu}>
@@ -83,6 +99,22 @@ const styles = StyleSheet.create({
   avatar: { backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.card },
   name: { fontFamily: fonts.serif, fontSize: 24, color: colors.foreground, marginTop: spacing.sm },
   email: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
+
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primaryTint,
+    borderWidth: 1,
+    borderColor: 'rgba(196,98,45,0.25)',
+    borderRadius: radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: spacing.lg,
+  },
+  supportEmoji: { fontSize: 32 },
+  supportText: { flex: 1, gap: 2 },
+  supportTitle: { fontFamily: fonts.serifSemi, fontSize: 18, color: colors.foreground },
+  supportBody: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
 
   menu: { gap: spacing.md },
   menuRow: {

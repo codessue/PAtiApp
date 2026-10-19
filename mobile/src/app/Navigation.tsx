@@ -24,6 +24,7 @@ import { WeightChartScreen } from '../screens/weight/WeightChartScreen';
 import { AddWeightScreen } from '../screens/weight/AddWeightScreen';
 import { MedicationListScreen } from '../screens/medications/MedicationListScreen';
 import { AddMedicationScreen } from '../screens/medications/AddMedicationScreen';
+import { FoodSupportScreen } from '../screens/support/FoodSupportScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -37,6 +38,7 @@ export type RootStackParamList = {
   AddWeight: { catId: string };
   MedicationList: { catId: string; catName: string };
   AddMedication: { catId: string };
+  FoodSupport: undefined;
 };
 
 export type AuthStackParamList = {
@@ -186,6 +188,7 @@ export const Navigation = () => {
             <Stack.Screen name="AddWeight" component={AddWeightScreen} options={{ title: 'Kilo Ekle' }} />
             <Stack.Screen name="MedicationList" component={MedicationListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · İlaçlar` })} />
             <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'İlaç Ekle' }} />
+            <Stack.Screen name="FoodSupport" component={FoodSupportScreen} options={{ title: 'Mama Desteği' }} />
           </>
         )}
       </Stack.Navigator>

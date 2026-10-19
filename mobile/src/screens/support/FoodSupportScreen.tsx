@@ -8,6 +8,15 @@ import { CUSTOM_AMOUNTS, SUPPORT_PRODUCTS, SUPPORT_SKUS } from '../../constants/
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
+// 100 ₺'lik desteğin yaklaşık dağılımı: %20 KDV (fiyata dahil), %15 mağaza
+// komisyonu, %15 GVK 20/B stopajı. Kesin tutarı mağaza belirler.
+const BREAKDOWN = [
+  { label: '🐾 Mamaya giden', value: '~60 ₺', highlight: true },
+  { label: 'KDV (%20, fiyata dahil)', value: '~17 ₺', highlight: false },
+  { label: 'Mağaza komisyonu (%15)', value: '~12 ₺', highlight: false },
+  { label: 'Gelir vergisi stopajı (%15)', value: '~11 ₺', highlight: false },
+];
+
 // Uygulama içi tüketilebilir ürünlerle "mama desteği".
 // Mağaza kurallarına göre bu bir bahşiştir: hiçbir özellik açmaz.
 export const FoodSupportScreen = () => {
@@ -136,6 +145,19 @@ export const FoodSupportScreen = () => {
         </View>
       )}
 
+      <Card style={styles.transparency}>
+        <Text style={styles.customTitle}>Desteğin nereye gidiyor?</Text>
+        <Text style={styles.transparencyBody}>
+          Her 100 ₺'lik desteğin yaklaşık 60 ₺'si doğrudan mamaya gider. Kalanı yasal kesintilerdir.
+        </Text>
+        {BREAKDOWN.map((row) => (
+          <View key={row.label} style={styles.breakdownRow}>
+            <Text style={[styles.breakdownLabel, row.highlight && styles.breakdownHighlight]}>{row.label}</Text>
+            <Text style={[styles.breakdownValue, row.highlight && styles.breakdownHighlight]}>{row.value}</Text>
+          </View>
+        ))}
+      </Card>
+
       {!storeAvailable ? (
         <Text style={styles.note}>Mağazaya şu an bağlanılamıyor. Lütfen daha sonra tekrar deneyin.</Text>
       ) : null}
@@ -194,6 +216,13 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.foreground },
   chipTextSelected: { color: colors.primaryForeground },
+
+  transparency: { gap: spacing.sm },
+  transparencyBody: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground, marginBottom: spacing.xs },
+  breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
+  breakdownLabel: { fontFamily: fonts.sans, fontSize: 14, color: colors.foreground },
+  breakdownValue: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.mutedForeground },
+  breakdownHighlight: { fontFamily: fonts.sansBold, color: colors.primary },
 
   thanks: { alignItems: 'center', gap: spacing.sm },
   thanksTitle: { fontFamily: fonts.serif, fontSize: 22, color: colors.foreground },

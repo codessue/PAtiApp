@@ -346,6 +346,19 @@ namespace Pati.API.Migrations
                         .HasColumnType("text")
                         .HasColumnName("notes");
 
+                    b.Property<string>("Place")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("vet")
+                        .HasColumnName("place");
+
+                    b.Property<string>("ReceiptUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("receipt_url");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)

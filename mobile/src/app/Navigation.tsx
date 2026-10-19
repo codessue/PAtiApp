@@ -213,8 +213,8 @@ export const Navigation = () => {
             <Stack.Screen name="AccountInfo" component={AccountInfoScreen} options={{ headerShown: false }} />
             <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Ödemeler` })} />
-            <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Gider Ekle' }} />
+            <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Harcamalar` })} />
+            <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Harcama Ekle' }} />
             <Stack.Screen name="AddPayment" component={AddPaymentScreen} options={{ title: 'Ödeme Ekle' }} />
             <Stack.Screen name="FoodSupport" component={FoodSupportScreen} options={{ title: 'Mama Desteği' }} />
           </>

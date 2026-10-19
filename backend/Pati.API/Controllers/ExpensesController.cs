@@ -45,6 +45,21 @@ public class ExpensesController(ExpenseService expenseService) : BaseController
         return Ok(ApiResponse.OkEmpty("Gider kaydı silindi."));
     }
 
+    [HttpPost("{id:guid}/receipt")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadReceipt(Guid catId, Guid id, IFormFile? receipt)
+    {
+        var expense = await expenseService.UpdateReceiptAsync(catId, id, CurrentUserId, receipt);
+        return Ok(ApiResponse<VetExpenseDto>.Ok(expense, "Fiş yüklendi."));
+    }
+
+    [HttpDelete("{id:guid}/receipt")]
+    public async Task<IActionResult> DeleteReceipt(Guid catId, Guid id)
+    {
+        var expense = await expenseService.DeleteReceiptAsync(catId, id, CurrentUserId);
+        return Ok(ApiResponse<VetExpenseDto>.Ok(expense, "Fiş silindi."));
+    }
+
     [HttpPost("{id:guid}/payments")]
     public async Task<IActionResult> AddPayment(Guid catId, Guid id, [FromBody] CreateVetPaymentDto dto)
     {

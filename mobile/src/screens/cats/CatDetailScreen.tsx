@@ -33,7 +33,7 @@ import { formatCurrency } from '../../utils/currency';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
-const TABS = ['Özet', 'Günlük', 'Aşılar', 'Kilo', 'İlaçlar', 'Ödemeler'] as const;
+const TABS = ['Özet', 'Günlük', 'Aşılar', 'Kilo', 'İlaçlar', 'Harcamalar'] as const;
 type TabKey = typeof TABS[number];
 
 // Light-blue gender accent (per design; not part of the core token palette).
@@ -90,7 +90,7 @@ export const CatDetailScreen = () => {
     if (activeTab === 'Kilo') nav.navigate('AddWeight', { catId: cat.id });
     else if (activeTab === 'İlaçlar') nav.navigate('AddMedication', { catId: cat.id });
     else if (activeTab === 'Günlük') nav.navigate('NoteEditor', { catId: cat.id });
-    else if (activeTab === 'Ödemeler') nav.navigate('AddExpense', { catId: cat.id });
+    else if (activeTab === 'Harcamalar') nav.navigate('AddExpense', { catId: cat.id });
     else nav.navigate('AddVaccine', { catId: cat.id });
   };
 
@@ -171,17 +171,25 @@ export const CatDetailScreen = () => {
         </View>
 
         {/* Inner tabs */}
-        <View style={styles.tabBar}>
+        {/* Six tabs don't fit narrow phones; scroll horizontally instead of wrapping labels. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabBar}
+          contentContainerStyle={styles.tabBarContent}
+        >
           {TABS.map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
               style={[styles.tab, activeTab === tab && styles.tabActive]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === tab }}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]} numberOfLines={1}>{tab}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Tab content */}
         <View style={styles.tabContent}>
@@ -246,7 +254,7 @@ export const CatDetailScreen = () => {
               {/* Vet payments */}
               {expenseSummary && expenseSummary.expenseCount > 0 && (
                 <View>
-                  <Text style={styles.sectionTitle}>Veteriner Ödemeleri</Text>
+                  <Text style={styles.sectionTitle}>Harcamalar</Text>
                   <TouchableOpacity
                     activeOpacity={0.85}
                     onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })}
@@ -328,8 +336,8 @@ export const CatDetailScreen = () => {
             <Button title="İlaç Listesini Görüntüle" onPress={() => nav.navigate('MedicationList', { catId: cat.id, catName: cat.name })} />
           )}
 
-          {activeTab === 'Ödemeler' && (
-            <Button title="Ödemeleri ve Borcu Görüntüle" onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })} />
+          {activeTab === 'Harcamalar' && (
+            <Button title="Harcamaları Görüntüle" onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })} />
           )}
         </View>
       </ScrollView>
@@ -422,8 +430,9 @@ const styles = StyleSheet.create({
   statLabel: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   statValue: { fontFamily: fonts.sansBold, fontSize: 15, color: colors.foreground, textAlign: 'center' },
 
-  tabBar: { flexDirection: 'row', marginTop: spacing.xl, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
-  tab: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
+  tabBar: { flexGrow: 0, marginTop: spacing.xl, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabBarContent: { flexGrow: 1, paddingHorizontal: 16 },
+  tab: { flexGrow: 1, paddingVertical: spacing.md, paddingHorizontal: spacing.md, alignItems: 'center' },
   tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
   tabText: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.mutedForeground },
   tabTextActive: { color: colors.primary, fontFamily: fonts.sansBold },

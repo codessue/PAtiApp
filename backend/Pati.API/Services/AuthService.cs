@@ -118,7 +118,14 @@ public class AuthService(IUnitOfWork uow, AppDbContext context, IConfiguration c
             .Select(c => c.PhotoUrl!)
             .ToListAsync();
 
-        foreach (var photoUrl in photoUrls)
+        // Harcama fişleri de kişisel veri; hesapla birlikte silinmeli.
+        var receiptUrls = await context.VetExpenses
+            .IgnoreQueryFilters()
+            .Where(e => e.Cat.UserId == userId && e.ReceiptUrl != null)
+            .Select(e => e.ReceiptUrl!)
+            .ToListAsync();
+
+        foreach (var photoUrl in photoUrls.Concat(receiptUrls))
             DeleteUploadedFile(photoUrl);
 
         uow.Users.Remove(user);

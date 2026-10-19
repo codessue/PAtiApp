@@ -6,10 +6,27 @@ using Pati.API.Repositories;
 
 namespace Pati.API.Services;
 
-public class ExpenseService(IUnitOfWork uow, AppDbContext context)
+public class ExpenseService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironment env)
 {
     private static readonly HashSet<string> Categories =
-        ["exam", "treatment", "medication", "vaccine", "surgery", "lab", "other"];
+    [
+        "food", "litter", "toy", "accessory", "grooming",
+        "exam", "treatment", "medication", "vaccine", "surgery", "lab", "other"
+    ];
+
+    private static readonly HashSet<string> Places = ["market", "petshop", "online", "vet", "other"];
+
+    private const long MaxReceiptBytes = 8 * 1024 * 1024; // 8 MB
+
+    // Uzantı dosya adından alınmaz (depolanmış XSS riski); yalnızca bilinen resim türleri.
+    private static readonly Dictionary<string, string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/jpg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp",
+        ["image/heic"] = ".heic",
+    };
 
     public async Task<IEnumerable<VetExpenseDto>> GetExpensesAsync(Guid catId, Guid userId)
     {
@@ -76,6 +93,9 @@ public class ExpenseService(IUnitOfWork uow, AppDbContext context)
             throw new ArgumentException("Açıklama zorunludur.");
         if (!Categories.Contains(dto.Category))
             throw new ArgumentException("Geçersiz kategori.");
+        var place = string.IsNullOrWhiteSpace(dto.Place) ? "vet" : dto.Place;
+        if (!Places.Contains(place))
+            throw new ArgumentException("Geçersiz alışveriş yeri.");
         if (dto.Amount <= 0)
             throw new ArgumentException("Tutar sıfırdan büyük olmalıdır.");
         if (dto.PaidAmount is < 0)
@@ -88,6 +108,7 @@ public class ExpenseService(IUnitOfWork uow, AppDbContext context)
             CatId = catId,
             Title = dto.Title.Trim(),
             Category = dto.Category,
+            Place = place,
             ClinicName = dto.ClinicName,
             ExpenseDate = dto.ExpenseDate,
             Amount = dto.Amount,
@@ -117,8 +138,60 @@ public class ExpenseService(IUnitOfWork uow, AppDbContext context)
         var expense = await uow.VetExpenses.FirstOrDefaultAsync(e => e.Id == expenseId && e.CatId == catId)
             ?? throw new KeyNotFoundException("Gider kaydı bulunamadı.");
 
+        var receiptUrl = expense.ReceiptUrl;
         uow.VetExpenses.Remove(expense);
         await uow.SaveChangesAsync();
+        DeleteUploadedFile(receiptUrl);
+    }
+
+    public async Task<VetExpenseDto> UpdateReceiptAsync(Guid catId, Guid expenseId, Guid userId, IFormFile? receipt)
+    {
+        if (receipt is null || receipt.Length == 0)
+            throw new InvalidOperationException("Lütfen bir fiş veya görsel seçin.");
+        if (receipt.Length > MaxReceiptBytes)
+            throw new InvalidOperationException("Görsel çok büyük (en fazla 8 MB).");
+        if (!AllowedImageTypes.TryGetValue(receipt.ContentType ?? string.Empty, out var extension))
+            throw new InvalidOperationException("Yalnızca JPG, PNG, WEBP veya HEIC görsel yükleyebilirsiniz.");
+
+        await EnsureCatOwnership(catId, userId);
+
+        var expense = await context.VetExpenses
+            .Include(e => e.Payments)
+            .FirstOrDefaultAsync(e => e.Id == expenseId && e.CatId == catId)
+            ?? throw new KeyNotFoundException("Gider kaydı bulunamadı.");
+
+        var uploadPath = Path.Combine(env.WebRootPath ?? "wwwroot", "uploads", "receipts");
+        Directory.CreateDirectory(uploadPath);
+
+        var fileName = $"{expenseId}_{Guid.NewGuid()}{extension}";
+        await using (var stream = new FileStream(Path.Combine(uploadPath, fileName), FileMode.Create))
+        {
+            await receipt.CopyToAsync(stream);
+        }
+
+        var previous = expense.ReceiptUrl;
+        expense.ReceiptUrl = $"/uploads/receipts/{fileName}";
+        await uow.SaveChangesAsync();
+        DeleteUploadedFile(previous);
+
+        return MapToDto(expense);
+    }
+
+    public async Task<VetExpenseDto> DeleteReceiptAsync(Guid catId, Guid expenseId, Guid userId)
+    {
+        await EnsureCatOwnership(catId, userId);
+
+        var expense = await context.VetExpenses
+            .Include(e => e.Payments)
+            .FirstOrDefaultAsync(e => e.Id == expenseId && e.CatId == catId)
+            ?? throw new KeyNotFoundException("Gider kaydı bulunamadı.");
+
+        var previous = expense.ReceiptUrl;
+        expense.ReceiptUrl = null;
+        await uow.SaveChangesAsync();
+        DeleteUploadedFile(previous);
+
+        return MapToDto(expense);
     }
 
     public async Task<VetExpenseDto> AddPaymentAsync(Guid catId, Guid expenseId, Guid userId, CreateVetPaymentDto dto)
@@ -172,8 +245,27 @@ public class ExpenseService(IUnitOfWork uow, AppDbContext context)
             .Select(p => new VetPaymentDto(p.Id, p.ExpenseId, p.Amount, p.PaidAt, p.Notes));
 
         return new VetExpenseDto(
-            e.Id, e.CatId, e.Title, e.Category, e.ClinicName, e.ExpenseDate,
-            e.Amount, paid, e.Amount - paid, e.Notes, payments);
+            e.Id, e.CatId, e.Title, e.Category, e.Place, e.ClinicName, e.ExpenseDate,
+            e.Amount, paid, e.Amount - paid, e.Notes, e.ReceiptUrl, payments);
+    }
+
+    private void DeleteUploadedFile(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+        try
+        {
+            var segments = url.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0 || segments.Any(seg => seg == "..")) return;
+
+            var root = Path.GetFullPath(env.WebRootPath ?? "wwwroot");
+            var path = Path.GetFullPath(Path.Combine([root, .. segments]));
+            if (!path.StartsWith(root, StringComparison.Ordinal)) return;
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // en-iyi-çaba
+        }
     }
 
     private async Task EnsureCatOwnership(Guid catId, Guid userId)

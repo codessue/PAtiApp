@@ -7,18 +7,21 @@ public record VetExpenseDto(
     Guid CatId,
     string Title,
     string Category,
+    string Place,
     string? ClinicName,
     DateOnly ExpenseDate,
     decimal Amount,
     decimal PaidAmount,
     decimal RemainingAmount,
     string? Notes,
+    string? ReceiptUrl,
     IEnumerable<VetPaymentDto> Payments
 );
 
 public record CreateVetExpenseDto(
     string Title,
     string Category,
+    string? Place,
     string? ClinicName,
     DateOnly ExpenseDate,
     decimal Amount,

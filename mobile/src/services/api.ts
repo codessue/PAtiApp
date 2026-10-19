@@ -151,6 +151,11 @@ export const expensesApi = {
   getOverallSummary: () => api.get('/expenses/summary'),
   create: (catId: string, data: unknown) => api.post(`/cats/${catId}/expenses`, data),
   delete: (catId: string, id: string) => api.delete(`/cats/${catId}/expenses/${id}`),
+  uploadReceipt: (catId: string, id: string, formData: FormData) =>
+    api.post(`/cats/${catId}/expenses/${id}/receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  deleteReceipt: (catId: string, id: string) => api.delete(`/cats/${catId}/expenses/${id}/receipt`),
   addPayment: (catId: string, id: string, data: { amount: number; paidAt: string; notes?: string }) =>
     api.post(`/cats/${catId}/expenses/${id}/payments`, data),
   deletePayment: (catId: string, id: string, paymentId: string) =>

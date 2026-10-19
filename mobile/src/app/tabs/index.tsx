@@ -163,56 +163,56 @@ export const HomeScreen = () => {
         </Card>
       )}
 
-      {/* Vet debt across all cats — always visible so payments are one tap away */}
-      {(
-        <View>
-          <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Veteriner Ödemeleri</Text>
-          <Card noPadding>
-            <View style={styles.debtHeader}>
-              <View style={[styles.debtIcon, { backgroundColor: hasDebt ? colors.destructiveTint : hasExpenses ? colors.successTint : colors.primaryTint }]}>
-                <Wallet size={22} color={debtColor} strokeWidth={2.2} />
-              </View>
-              <View style={styles.debtHeaderText}>
-                <Text style={styles.debtLabel}>{hasDebt ? 'Toplam kalan borç' : hasExpenses ? 'Tüm borçlar ödendi' : 'Henüz gider yok'}</Text>
-                <Text style={[styles.debtValue, { color: debtColor }]}>{formatCurrency(expenses?.totalRemaining ?? 0)}</Text>
-              </View>
+      {/* Spending across all pets — always visible so expenses are one tap away */}
+      <View>
+        <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Kedime Harcamalar</Text>
+        <Card noPadding>
+          <View style={styles.debtHeader}>
+            <View style={[styles.debtIcon, { backgroundColor: colors.primaryTint }]}>
+              <Wallet size={22} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <View style={styles.debtTotals}>
-              <Text style={styles.debtTotalText}>
-                Harcama <Text style={styles.debtTotalStrong}>{formatCurrency(expenses?.totalAmount ?? 0)}</Text>
-              </Text>
-              <Text style={styles.debtTotalText}>
-                Ödenen <Text style={[styles.debtTotalStrong, { color: colors.success }]}>{formatCurrency(expenses?.totalPaid ?? 0)}</Text>
+            <View style={styles.debtHeaderText}>
+              <Text style={styles.debtLabel}>{hasExpenses ? 'Toplam harcama' : 'Henüz harcama yok'}</Text>
+              <Text style={[styles.debtValue, { color: hasExpenses ? colors.foreground : colors.mutedForeground }]}>
+                {formatCurrency(expenses?.totalAmount ?? 0)}
               </Text>
             </View>
-            {(cats ?? []).map((cat) => {
-              const c = expenses?.cats.find((x) => x.catId === cat.id);
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  activeOpacity={0.8}
-                  onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })}
-                  style={styles.debtCatRow}
-                >
-                  <Text style={styles.debtCatName} numberOfLines={1}>{cat.name}</Text>
-                  <Text
-                    style={[
-                      styles.debtCatValue,
-                      { color: !c ? colors.mutedForeground : c.totalRemaining > 0 ? colors.destructive : colors.success },
-                    ]}
-                  >
-                    {!c ? 'Gider ekle' : c.totalRemaining > 0 ? `${formatCurrency(c.totalRemaining)} borç` : 'Ödendi'}
+          </View>
+          <View style={styles.debtTotals}>
+            <Text style={styles.debtTotalText}>
+              Ödenen <Text style={[styles.debtTotalStrong, { color: colors.success }]}>{formatCurrency(expenses?.totalPaid ?? 0)}</Text>
+            </Text>
+            <Text style={styles.debtTotalText}>
+              Kalan borç <Text style={[styles.debtTotalStrong, { color: debtColor }]}>{formatCurrency(expenses?.totalRemaining ?? 0)}</Text>
+            </Text>
+          </View>
+          {(cats ?? []).map((cat) => {
+            const c = expenses?.cats.find((x) => x.catId === cat.id);
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                activeOpacity={0.8}
+                onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })}
+                style={styles.debtCatRow}
+              >
+                <Text style={styles.debtCatName} numberOfLines={1}>{cat.name}</Text>
+                <View style={styles.debtCatAmounts}>
+                  <Text style={[styles.debtCatValue, { color: c ? colors.foreground : colors.primary }]}>
+                    {c ? formatCurrency(c.totalAmount) : 'Harcama ekle'}
                   </Text>
-                  <ChevronRight size={18} color={colors.mutedForeground} />
-                </TouchableOpacity>
-              );
-            })}
-            {(cats ?? []).length === 0 && (
-              <Text style={[styles.emptySection, styles.debtEmpty]}>Ödeme takibi için önce bir dost ekle.</Text>
-            )}
-          </Card>
-        </View>
-      )}
+                  {c && c.totalRemaining > 0 ? (
+                    <Text style={styles.debtCatDebt}>{`${formatCurrency(c.totalRemaining)} borç`}</Text>
+                  ) : null}
+                </View>
+                <ChevronRight size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            );
+          })}
+          {(cats ?? []).length === 0 && (
+            <Text style={[styles.emptySection, styles.debtEmpty]}>Harcama takibi için önce bir dost ekle.</Text>
+          )}
+        </Card>
+      </View>
 
       {/* Today's medications */}
       <View>
@@ -393,6 +393,8 @@ const styles = StyleSheet.create({
   debtCatName: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 15, color: colors.foreground },
   debtCatValue: { fontFamily: fonts.sansBold, fontSize: 14 },
   debtEmpty: { padding: spacing.lg },
+  debtCatAmounts: { alignItems: 'flex-end' },
+  debtCatDebt: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.destructive, marginTop: 2 },
   seeAll: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
   emptySection: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
 

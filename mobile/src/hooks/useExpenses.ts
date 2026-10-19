@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { expensesApi } from '../services/api';
-import { ExpenseCategory, ExpenseSummary, OverallExpenseSummary, VetExpense } from '../types';
+import { ExpenseCategory, ExpensePlace, ExpenseSummary, OverallExpenseSummary, VetExpense } from '../types';
 
 export const useExpenses = (catId: string) =>
   useQuery<VetExpense[]>({
@@ -39,12 +39,38 @@ export const useCreateExpense = (catId: string) => {
     mutationFn: (data: {
       title: string;
       category: ExpenseCategory;
+      place: ExpensePlace;
       clinicName?: string;
       expenseDate: string;
       amount: number;
       paidAmount?: number;
       notes?: string;
     }) => expensesApi.create(catId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+};
+
+/** Fiş / ürün görselini yükler (yeni kayıt sonrası ya da sonradan ekleme). */
+export const useUploadReceipt = (catId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ expenseId, uri }: { expenseId: string; uri: string }) => {
+      const name = uri.split('/').pop() || 'receipt.jpg';
+      const ext = name.split('.').pop()?.toLowerCase();
+      const type = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
+      const form = new FormData();
+      // React Native FormData file shape: { uri, name, type }.
+      form.append('receipt', { uri, name, type } as unknown as Blob);
+      return expensesApi.uploadReceipt(catId, expenseId, form);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+};
+
+export const useDeleteReceipt = (catId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (expenseId: string) => expensesApi.deleteReceipt(catId, expenseId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 };

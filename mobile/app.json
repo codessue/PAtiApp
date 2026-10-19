@@ -19,8 +19,8 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Kedinizin fotoğrafını çekmek için kamera erişimi gerekiyor.",
-        "NSPhotoLibraryUsageDescription": "Kedinizin fotoğrafını seçmek için galeri erişimi gerekiyor.",
+        "NSCameraUsageDescription": "Dostunun fotoğrafını ve harcama fişlerini çekmek için kamera erişimi gerekiyor.",
+        "NSPhotoLibraryUsageDescription": "Dostunun fotoğrafını ve harcama fişi / ürün görsellerini seçmek için galeri erişimi gerekiyor.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -33,11 +33,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
+        "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
       ],
       "blockedPermissions": [
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -58,7 +58,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Kedinizin fotoğrafını seçmek için galeri erişimi isteniyor."
+          "photosPermission": "Dostunun fotoğrafını ve harcama fişi / ürün görsellerini seçmek için galeri erişimi gerekiyor.",
+          "cameraPermission": "Dostunun fotoğrafını ve harcama fişlerini çekmek için kamera erişimi gerekiyor."
         }
       ],
       "@react-native-community/datetimepicker"

@@ -2,6 +2,8 @@ import React, { useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,18 +14,27 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { ChevronDown, ChevronUp, CircleCheck, Plus, Trash2, Wallet } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ImagePlus, Plus, Trash2, Wallet, X } from 'lucide-react-native';
 import { RootStackParamList } from '../../app/Navigation';
-import { useDeleteExpense, useDeletePayment, useExpenseSummary, useExpenses } from '../../hooks/useExpenses';
+import {
+  useDeleteExpense,
+  useDeletePayment,
+  useDeleteReceipt,
+  useExpenseSummary,
+  useExpenses,
+  useUploadReceipt,
+} from '../../hooks/useExpenses';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
-import { getExpenseCategory } from '../../constants/expenseCategories';
+import { getExpenseCategory, getExpensePlace } from '../../constants/expenseCategories';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { formatDate } from '../../utils/dateHelpers';
 import { formatCurrency } from '../../utils/currency';
+import { mediaUrl } from '../../utils/media';
+import { pickReceipt } from '../../utils/pickReceipt';
 import { VetExpense } from '../../types';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -37,7 +48,26 @@ export const ExpenseListScreen = () => {
   const { data: summary } = useExpenseSummary(catId);
   const { mutateAsync: deleteExpense } = useDeleteExpense(catId);
   const { mutateAsync: deletePayment } = useDeletePayment(catId);
+  const { mutateAsync: uploadReceipt, isPending: uploadingReceipt } = useUploadReceipt(catId);
+  const { mutateAsync: deleteReceipt } = useDeleteReceipt(catId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
+
+  const addReceipt = async (expenseId: string) => {
+    const uri = await pickReceipt();
+    if (!uri) return;
+    try {
+      await uploadReceipt({ expenseId, uri });
+    } catch {
+      Alert.alert('Hata', 'Fiş yüklenirken bir sorun oluştu.');
+    }
+  };
+
+  const confirmDeleteReceipt = (expenseId: string) =>
+    Alert.alert('Fişi Sil', 'Bu harcamanın fiş görselini silmek istiyor musunuz?', [
+      { text: 'İptal', style: 'cancel' },
+      { text: 'Sil', style: 'destructive', onPress: () => deleteReceipt(expenseId) },
+    ]);
 
   useLayoutEffect(() => {
     nav.setOptions({ headerShown: false });
@@ -63,7 +93,7 @@ export const ExpenseListScreen = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Header
-        title="Veteriner Ödemeleri"
+        title="Kedime Harcamalar"
         onBack={() => nav.goBack()}
         right={
           <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => nav.navigate('AddExpense', { catId })}>
@@ -82,38 +112,32 @@ export const ExpenseListScreen = () => {
         ) : !expenses || expenses.length === 0 ? (
           <EmptyState
             emoji="🧾"
-            title="Henüz veteriner gideri yok"
-            description="Muayene, tedavi ve ilaç masraflarını ekleyin; ödenen ve kalan borç otomatik hesaplansın."
-            actionLabel="Gider Ekle"
+            title="Henüz harcama yok"
+            description="Mama, kum, oyuncak, veteriner… Market, petshop ya da internetten aldıklarını fişiyle birlikte kaydet; toplam ve kalan borç otomatik hesaplansın."
+            actionLabel="Harcama Ekle"
             onAction={() => nav.navigate('AddExpense', { catId })}
           />
         ) : (
           <>
-            {/* Debt hero */}
+            {/* Total spent hero */}
             <View style={styles.hero}>
-              <Text style={styles.heroLabel}>Kalan Borç</Text>
-              <Text style={[styles.heroValue, { color: totalRemaining > 0 ? colors.destructive : colors.success }]}>
-                {formatCurrency(totalRemaining)}
-              </Text>
-              {totalRemaining <= 0 && (
-                <View style={styles.paidPill}>
-                  <CircleCheck size={14} color={colors.success} strokeWidth={2.4} />
-                  <Text style={styles.paidPillText}>Tüm borçlar ödendi</Text>
-                </View>
-              )}
+              <Text style={styles.heroLabel}>Toplam Harcama</Text>
+              <Text style={styles.heroValue}>{formatCurrency(totalAmount)}</Text>
             </View>
 
             {/* Totals */}
             <Card>
               <View style={styles.totalsRow}>
                 <View style={styles.totalCell}>
-                  <Text style={styles.totalLabel}>Toplam Harcama</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
+                  <Text style={styles.totalLabel}>Ödenen</Text>
+                  <Text style={[styles.totalValue, { color: colors.success }]}>{formatCurrency(totalPaid)}</Text>
                 </View>
                 <View style={styles.totalDivider} />
                 <View style={styles.totalCell}>
-                  <Text style={styles.totalLabel}>Ödenen</Text>
-                  <Text style={[styles.totalValue, { color: colors.success }]}>{formatCurrency(totalPaid)}</Text>
+                  <Text style={styles.totalLabel}>Kalan Borç</Text>
+                  <Text style={[styles.totalValue, { color: totalRemaining > 0 ? colors.destructive : colors.success }]}>
+                    {formatCurrency(totalRemaining)}
+                  </Text>
                 </View>
               </View>
               <View style={styles.progressTrack}>
@@ -126,10 +150,12 @@ export const ExpenseListScreen = () => {
             </Card>
 
             {/* Expense list */}
-            <Text style={styles.sectionTitle}>Yapılan İşlemler</Text>
+            <Text style={styles.sectionTitle}>Harcamalar</Text>
             <View style={{ gap: spacing.md }}>
               {expenses.map((expense) => {
                 const cat = getExpenseCategory(expense.category);
+                const place = getExpensePlace(expense.place);
+                const receipt = mediaUrl(expense.receiptUrl);
                 const Icon = cat.icon;
                 const isPaid = expense.remainingAmount <= 0;
                 const expanded = expandedId === expense.id;
@@ -147,7 +173,7 @@ export const ExpenseListScreen = () => {
                       <View style={styles.expenseInfo}>
                         <Text style={styles.expenseTitle} numberOfLines={1}>{expense.title}</Text>
                         <Text style={styles.expenseMeta} numberOfLines={1}>
-                          {[cat.label, expense.clinicName, formatDate(expense.expenseDate)].filter(Boolean).join(' · ')}
+                          {[cat.label, expense.clinicName || place.label, formatDate(expense.expenseDate)].filter(Boolean).join(' · ')}
                         </Text>
                       </View>
                       <View style={styles.expenseAmounts}>
@@ -166,6 +192,12 @@ export const ExpenseListScreen = () => {
                     {expanded && (
                       <View style={styles.detail}>
                         <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Nereden</Text>
+                          <Text style={styles.detailValue}>
+                            {expense.clinicName ? `${place.label} · ${expense.clinicName}` : place.label}
+                          </Text>
+                        </View>
+                        <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>Tutar</Text>
                           <Text style={styles.detailValue}>{formatCurrency(expense.amount)}</Text>
                         </View>
@@ -180,6 +212,41 @@ export const ExpenseListScreen = () => {
                           </Text>
                         </View>
                         {expense.notes ? <Text style={styles.notes}>{expense.notes}</Text> : null}
+
+                        <Text style={styles.paymentsTitle}>Fiş / Görsel</Text>
+                        {receipt ? (
+                          <View style={styles.receiptRow}>
+                            <TouchableOpacity
+                              activeOpacity={0.85}
+                              onPress={() => setViewerUri(receipt)}
+                              accessibilityRole="imagebutton"
+                              accessibilityLabel={`${expense.title} fişini büyüt`}
+                            >
+                              <Image source={{ uri: receipt }} style={styles.receiptThumb} resizeMode="cover" />
+                            </TouchableOpacity>
+                            <View style={styles.receiptActions}>
+                              <TouchableOpacity onPress={() => addReceipt(expense.id)} disabled={uploadingReceipt} hitSlop={6}>
+                                <Text style={styles.linkText}>Değiştir</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={() => confirmDeleteReceipt(expense.id)} hitSlop={6}>
+                                <Text style={[styles.linkText, { color: colors.destructive }]}>Sil</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.receiptAdd}
+                            activeOpacity={0.85}
+                            onPress={() => addReceipt(expense.id)}
+                            disabled={uploadingReceipt}
+                            accessibilityRole="button"
+                          >
+                            {uploadingReceipt
+                              ? <ActivityIndicator color={colors.primary} />
+                              : <ImagePlus size={18} color={colors.primary} strokeWidth={2} />}
+                            <Text style={styles.linkText}>Fiş veya görsel ekle</Text>
+                          </TouchableOpacity>
+                        )}
 
                         <Text style={styles.paymentsTitle}>Ödeme Geçmişi</Text>
                         {expense.payments.length === 0 ? (
@@ -225,6 +292,22 @@ export const ExpenseListScreen = () => {
           </>
         )}
       </ScrollView>
+
+      <Modal visible={!!viewerUri} transparent animationType="fade" onRequestClose={() => setViewerUri(null)}>
+        <View style={styles.viewer}>
+          {viewerUri ? (
+            <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" accessibilityLabel="Fiş görseli" />
+          ) : null}
+          <TouchableOpacity
+            style={[styles.viewerClose, { top: insets.top + spacing.md }]}
+            onPress={() => setViewerUri(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Kapat"
+          >
+            <X size={22} color={colors.primaryForeground} strokeWidth={2.4} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -240,13 +323,7 @@ const styles = StyleSheet.create({
 
   hero: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
   heroLabel: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
-  heroValue: { fontFamily: fonts.serif, fontSize: 44, letterSpacing: -1 },
-  paidPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.successTint,
-    paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.full,
-  },
-  paidPillText: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.success },
+  heroValue: { fontFamily: fonts.serif, fontSize: 44, letterSpacing: -1, color: colors.foreground },
 
   totalsRow: { flexDirection: 'row', alignItems: 'center' },
   totalCell: { flex: 1, alignItems: 'center', gap: 4 },
@@ -279,6 +356,21 @@ const styles = StyleSheet.create({
   paymentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 4 },
   paymentDate: { flex: 1, fontFamily: fonts.sans, fontSize: 14, color: colors.foreground },
   paymentAmount: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.success },
+  receiptRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md },
+  receiptThumb: { width: 96, height: 120, borderRadius: radius.md, backgroundColor: colors.muted },
+  receiptActions: { gap: spacing.sm, paddingBottom: 4 },
+  receiptAdd: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+    borderRadius: radius.md, backgroundColor: colors.primaryTint, alignSelf: 'flex-start',
+  },
+  linkText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
+  viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center' },
+  viewerImage: { width: '100%', height: '80%' },
+  viewerClose: {
+    position: 'absolute', right: 20, width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center',
+  },
   detailActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   actionBtn: { flex: 1 },
 });

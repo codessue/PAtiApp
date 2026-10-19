@@ -127,7 +127,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.CatId).HasColumnName("cat_id");
             e.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
             e.Property(x => x.Category).HasColumnName("category").HasMaxLength(20).IsRequired();
+            e.Property(x => x.Place).HasColumnName("place").HasMaxLength(20).IsRequired().HasDefaultValue("vet");
             e.Property(x => x.ClinicName).HasColumnName("clinic_name").HasMaxLength(100);
+            e.Property(x => x.ReceiptUrl).HasColumnName("receipt_url").HasMaxLength(300);
             e.Property(x => x.ExpenseDate).HasColumnName("expense_date").IsRequired();
             e.Property(x => x.Amount).HasColumnName("amount").HasColumnType("decimal(12,2)").IsRequired();
             e.Property(x => x.Notes).HasColumnName("notes");

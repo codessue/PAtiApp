@@ -114,7 +114,12 @@ export interface SymptomCheckResult {
   disclaimer: string;
 }
 
-export type ExpenseCategory = 'exam' | 'treatment' | 'medication' | 'vaccine' | 'surgery' | 'lab' | 'other';
+export type ExpenseCategory =
+  | 'food' | 'litter' | 'toy' | 'accessory' | 'grooming'
+  | 'exam' | 'treatment' | 'medication' | 'vaccine' | 'surgery' | 'lab' | 'other';
+
+/** Alışverişin yapıldığı yer. */
+export type ExpensePlace = 'market' | 'petshop' | 'online' | 'vet' | 'other';
 
 export interface VetPayment {
   id: string;
@@ -129,12 +134,16 @@ export interface VetExpense {
   catId: string;
   title: string;
   category: ExpenseCategory;
+  place: ExpensePlace;
+  /** Mağaza / klinik / site adı. */
   clinicName?: string;
   expenseDate: string;
   amount: number;
   paidAmount: number;
   remainingAmount: number;
   notes?: string;
+  /** Fiş veya ürün görseli (API'ye göreli yol). */
+  receiptUrl?: string;
   payments: VetPayment[];
 }
 

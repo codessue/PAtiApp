@@ -52,12 +52,4 @@ public class AuthController(AuthService authService) : BaseController
         await authService.UpdatePushTokenAsync(CurrentUserId, dto.ExpoPushToken);
         return Ok(ApiResponse.OkEmpty("Push token güncellendi."));
     }
-
-    [Authorize]
-    [HttpDelete("account")]
-    public async Task<IActionResult> DeleteAccount()
-    {
-        await authService.DeleteAccountAsync(CurrentUserId);
-        return Ok(ApiResponse.OkEmpty("Hesabınız ve tüm verileriniz silindi."));
-    }
 }

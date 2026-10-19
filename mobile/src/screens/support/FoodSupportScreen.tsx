@@ -4,7 +4,7 @@ import { Heart } from 'lucide-react-native';
 import { isUserCancelledError, useIAP } from 'expo-iap';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
-import { SUPPORT_PRODUCTS, SUPPORT_SKUS } from '../../constants/supportProducts';
+import { CUSTOM_AMOUNTS, SUPPORT_PRODUCTS, SUPPORT_SKUS } from '../../constants/supportProducts';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button';
 export const FoodSupportScreen = () => {
   const [pendingSku, setPendingSku] = useState<string | null>(null);
   const [thanked, setThanked] = useState(false);
+  const [customSku, setCustomSku] = useState(CUSTOM_AMOUNTS[1].sku);
 
   const { connected, products, fetchProducts, requestPurchase, finishTransaction } = useIAP({
     onPurchaseSuccess: async (purchase) => {
@@ -51,6 +52,12 @@ export const FoodSupportScreen = () => {
   };
 
   const storeAvailable = Platform.OS !== 'web' && connected;
+  const priceOf = (sku: string, fallback: string) =>
+    products.find((p) => p.id === sku)?.displayPrice ?? fallback;
+  const customPrice = priceOf(
+    customSku,
+    CUSTOM_AMOUNTS.find((a) => a.sku === customSku)?.fallbackPrice ?? '',
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -73,7 +80,6 @@ export const FoodSupportScreen = () => {
       ) : (
         <View style={styles.list}>
           {SUPPORT_PRODUCTS.map((item) => {
-            const product = products.find((p) => p.id === item.sku);
             const isPending = pendingSku === item.sku;
             return (
               <TouchableOpacity
@@ -94,12 +100,39 @@ export const FoodSupportScreen = () => {
                   <ActivityIndicator color={colors.primary} />
                 ) : (
                   <View style={styles.pricePill}>
-                    <Text style={styles.priceText}>{product?.displayPrice ?? item.fallbackPrice}</Text>
+                    <Text style={styles.priceText}>{priceOf(item.sku, item.fallbackPrice)}</Text>
                   </View>
                 )}
               </TouchableOpacity>
             );
           })}
+
+          <Card style={styles.custom}>
+            <Text style={styles.customTitle}>Tutarı sen seç</Text>
+            <View style={styles.chips}>
+              {CUSTOM_AMOUNTS.map((amount) => {
+                const selected = amount.sku === customSku;
+                return (
+                  <TouchableOpacity
+                    key={amount.sku}
+                    style={[styles.chip, selected && styles.chipSelected]}
+                    activeOpacity={0.85}
+                    onPress={() => setCustomSku(amount.sku)}
+                  >
+                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                      {priceOf(amount.sku, amount.fallbackPrice)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Button
+              title={`${customPrice} destek ol`}
+              loading={pendingSku === customSku}
+              disabled={!storeAvailable || pendingSku !== null}
+              onPress={() => handleSupport(customSku)}
+            />
+          </Card>
         </View>
       )}
 
@@ -144,6 +177,23 @@ const styles = StyleSheet.create({
   rowDescription: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
   pricePill: { backgroundColor: colors.primary, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
   priceText: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.primaryForeground },
+
+  custom: { gap: spacing.lg },
+  customTitle: { fontFamily: fonts.serifSemi, fontSize: 18, color: colors.foreground },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: {
+    minWidth: 88,
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.muted,
+  },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.foreground },
+  chipTextSelected: { color: colors.primaryForeground },
 
   thanks: { alignItems: 'center', gap: spacing.sm },
   thanksTitle: { fontFamily: fonts.serif, fontSize: 22, color: colors.foreground },

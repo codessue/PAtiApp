@@ -35,4 +35,21 @@ export const SUPPORT_PRODUCTS: SupportProduct[] = [
   },
 ];
 
-export const SUPPORT_SKUS = SUPPORT_PRODUCTS.map((p) => p.sku);
+// "Tutarı sen seç" bölümü. Mağazalar serbest tutar girilmesine izin vermediği
+// için her tutar ayrı bir tüketilebilir ürün olarak tanımlanır.
+export interface CustomAmount {
+  sku: string;
+  fallbackPrice: string;
+}
+
+const CUSTOM_AMOUNTS_TL = [50, 100, 150, 300, 500, 750, 1500, 3000, 5000];
+
+export const CUSTOM_AMOUNTS: CustomAmount[] = CUSTOM_AMOUNTS_TL.map((tl) => ({
+  sku: `pati.support.custom_${tl}`,
+  fallbackPrice: `${tl.toLocaleString('tr-TR')} ₺`,
+}));
+
+export const SUPPORT_SKUS = [
+  ...SUPPORT_PRODUCTS.map((p) => p.sku),
+  ...CUSTOM_AMOUNTS.map((a) => a.sku),
+];

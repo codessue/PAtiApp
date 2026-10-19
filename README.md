@@ -88,7 +88,8 @@ tek seferlik (consumable) destek alır. Kurulum:
 
 1. App Store Connect ve Google Play Console'da şu tüketilebilir ürünleri oluşturun:
    `pati.support.food_small`, `pati.support.food_medium`, `pati.support.food_large`
-   (liste: `mobile/src/constants/supportProducts.ts`).
+   ve "Tutarı sen seç" için `pati.support.custom_50`, `_100`, `_150`, `_300`, `_500`,
+   `_750`, `_1500`, `_3000`, `_5000` (liste: `mobile/src/constants/supportProducts.ts`).
 2. Ödemeler mağazalar tarafından aylık olarak hesaplarda tanımlı banka hesabına aktarılır.
 3. Uygulama içi satın alma Expo Go'da çalışmaz; development build gerekir:
    `npx expo run:ios` / `npx expo run:android` veya EAS Build.

@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.YOUR-DOMAIN.com/api"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.YOUR-DOMAIN.com/api",
+        "EXPO_PUBLIC_PRIVACY_URL": "https://codessue.github.io/patiapp/privacy.html",
+        "EXPO_PUBLIC_SUPPORT_URL": "https://codessue.github.io/patiapp/support.html"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID"
+      }
+    }
+  }
+}

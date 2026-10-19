@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { Camera, ChevronRight, Info, LogOut, Settings, Trash2, User } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
@@ -26,6 +27,8 @@ const MENU: { icon: typeof User; label: string; route: 'AccountInfo' | 'AppSetti
 
 const getInitials = (name?: string): string =>
   name ? name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : '🐱';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
@@ -96,7 +99,7 @@ export const ProfileScreen = () => {
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Versiyon</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
+            <Text style={styles.infoValue}>{APP_VERSION}</Text>
           </View>
           <View style={[styles.infoRow, styles.infoRowLast]}>
             <Text style={styles.infoLabel}>Dil</Text>

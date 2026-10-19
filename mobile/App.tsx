@@ -1,6 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import 'react-native-gesture-handler';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -17,15 +18,7 @@ import {
 import { Navigation } from './src/app/Navigation';
 import { colors } from './src/constants/colors';
 import { Splash } from './src/components/ui/Splash';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 1000 * 60 * 2,
-    },
-  },
-});
+import { queryClient } from './src/services/queryClient';
 
 export default function App() {
   const [fontsLoaded] = useFonts({

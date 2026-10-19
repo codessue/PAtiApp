@@ -14,6 +14,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pati.app",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Kedinizin fotoğrafını çekmek için kamera erişimi gerekiyor.",
         "NSPhotoLibraryUsageDescription": "Kedinizin fotoğrafını seçmek için galeri erişimi gerekiyor.",
@@ -22,15 +26,19 @@
     },
     "android": {
       "package": "com.pati.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FAF6F0",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -42,7 +50,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/android-icon-monochrome.png",
           "color": "#C4622D"
         }
       ],

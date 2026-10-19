@@ -1,8 +1,9 @@
 import axios, { AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { ApiResponse } from '../types';
+import { config } from '../constants/config';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080/api';
+const BASE_URL = config.apiUrl;
 
 export const api = axios.create({
   baseURL: BASE_URL,

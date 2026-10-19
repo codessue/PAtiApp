@@ -72,8 +72,12 @@ export const CatDetailScreen = () => {
       [
         { text: 'İptal', style: 'cancel' },
         { text: 'Sil', style: 'destructive', onPress: async () => {
-          await deleteCat(cat.id);
-          nav.goBack();
+          try {
+            await deleteCat(cat.id);
+            nav.goBack();
+          } catch {
+            Alert.alert('Hata', 'Kedi silinirken bir sorun oluştu.');
+          }
         }},
       ]
     );

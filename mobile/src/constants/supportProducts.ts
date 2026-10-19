@@ -17,21 +17,21 @@ export const SUPPORT_PRODUCTS: SupportProduct[] = [
     emoji: '🥣',
     title: 'Bir kap mama',
     description: 'Bir kedinin bir öğünü',
-    fallbackPrice: '29,99 ₺',
+    fallbackPrice: '249 ₺',
   },
   {
     sku: 'pati.support.food_medium',
     emoji: '🐟',
     title: 'Bir haftalık mama',
     description: 'Bir kedinin bir haftası',
-    fallbackPrice: '99,99 ₺',
+    fallbackPrice: '999 ₺',
   },
   {
     sku: 'pati.support.food_large',
     emoji: '🛍️',
     title: 'Bir torba mama',
-    description: 'Tüm kedilerin birkaç günü',
-    fallbackPrice: '249,99 ₺',
+    description: '15 kg kuru mama',
+    fallbackPrice: '2.000 ₺',
   },
 ];
 

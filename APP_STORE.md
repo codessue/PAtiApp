@@ -39,7 +39,7 @@ eas login
 eas init                       # gerçek projectId'yi app.json'a yazar
 ```
 - `mobile/eas.json` → `EXPO_PUBLIC_API_URL` değerini gerçek API adresinle değiştir.
-- `com.pati.app` paket kimliği App Store'da başkasına ait olabilir; alınamazsa `app.json` → `ios.bundleIdentifier` değerini benzersiz bir değerle değiştir (ör. `com.<adın>.pati`).
+- Paket kimliği `com.patti.app` (iOS + Android). `com.pati.app` başka bir geliştiriciye ait olduğu için kullanılamıyor.
 
 ### 4. Derle ve gönder
 ```bash

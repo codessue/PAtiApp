@@ -82,6 +82,16 @@ export const ProfileScreen = () => {
           <Text style={styles.email}>{user?.email}</Text>
         </View>
 
+        {/* Food support */}
+        <TouchableOpacity style={styles.supportCard} activeOpacity={0.85} onPress={() => nav.navigate('FoodSupport')}>
+          <Text style={styles.supportEmoji}>🐈</Text>
+          <View style={styles.supportText}>
+            <Text style={styles.supportTitle}>Mama Desteği</Text>
+            <Text style={styles.supportBody}>Sokak kedilerinin mamasına destek ol</Text>
+          </View>
+          <ChevronRight size={20} color={colors.primary} />
+        </TouchableOpacity>
+
         {/* Menu */}
         <View style={styles.menu}>
           {MENU.map(({ icon: Icon, label, route }) => (
@@ -159,6 +169,22 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: fonts.serif, fontSize: 24, color: colors.foreground, marginTop: spacing.sm },
   email: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
+
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primaryTint,
+    borderWidth: 1,
+    borderColor: 'rgba(196,98,45,0.25)',
+    borderRadius: radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: spacing.lg,
+  },
+  supportEmoji: { fontSize: 32 },
+  supportText: { flex: 1, gap: 2 },
+  supportTitle: { fontFamily: fonts.serifSemi, fontSize: 18, color: colors.foreground },
+  supportBody: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground },
 
   menu: { gap: spacing.md },
   menuRow: {

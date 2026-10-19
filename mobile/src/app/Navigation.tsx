@@ -33,6 +33,7 @@ import { SupportScreen } from '../screens/settings/SupportScreen';
 import { ExpenseListScreen } from '../screens/expenses/ExpenseListScreen';
 import { AddExpenseScreen } from '../screens/expenses/AddExpenseScreen';
 import { AddPaymentScreen } from '../screens/expenses/AddPaymentScreen';
+import { FoodSupportScreen } from '../screens/support/FoodSupportScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -54,6 +55,7 @@ export type RootStackParamList = {
   ExpenseList: { catId: string; catName: string };
   AddExpense: { catId: string };
   AddPayment: { catId: string; expenseId: string; title: string; remaining: number };
+  FoodSupport: undefined;
 };
 
 export type AuthStackParamList = {
@@ -214,6 +216,7 @@ export const Navigation = () => {
             <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Ödemeler` })} />
             <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Gider Ekle' }} />
             <Stack.Screen name="AddPayment" component={AddPaymentScreen} options={{ title: 'Ödeme Ekle' }} />
+            <Stack.Screen name="FoodSupport" component={FoodSupportScreen} options={{ title: 'Mama Desteği' }} />
           </>
         )}
       </Stack.Navigator>

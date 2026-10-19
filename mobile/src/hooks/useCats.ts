@@ -45,7 +45,10 @@ export const useDeleteCat = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => catsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cats'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cats'] });
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+    },
   });
 };
 

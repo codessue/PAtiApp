@@ -10,13 +10,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Bell, Check, ChevronRight, Pill, Plus, Syringe, WifiOff } from 'lucide-react-native';
+import { Bell, Check, ChevronRight, Pill, Plus, Syringe, Wallet, WifiOff } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
 import { useLogTodayDose, useTodayMedications } from '../../hooks/useMedications';
 import { useCats } from '../../hooks/useCats';
 import { useNotesStore } from '../../stores/notesStore';
+import { useOverallExpenseSummary } from '../../hooks/useExpenses';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
@@ -28,6 +29,7 @@ import {
   getVaccineUrgencyColor,
   getVaccineUrgencyLabel,
 } from '../../utils/dateHelpers';
+import { formatCurrency } from '../../utils/currency';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -38,6 +40,7 @@ export const HomeScreen = () => {
   const { data: cats, isError: catsError, refetch: refetchCats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
   const { data: todayMeds, refetch: refetchMeds, isRefetching: m_refreshing } = useTodayMedications();
+  const { data: expenses, refetch: refetchExpenses, isRefetching: e_refreshing } = useOverallExpenseSummary();
   const { mutate: logDose, isPending: loggingDose } = useLogTodayDose();
   const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
 
@@ -54,8 +57,11 @@ export const HomeScreen = () => {
     [notes]
   );
 
-  const refreshing = v_refreshing || m_refreshing;
-  const onRefresh = () => { refetchCats(); refetchVaccines(); refetchMeds(); loadNotes(); };
+  const refreshing = v_refreshing || m_refreshing || e_refreshing;
+  const onRefresh = () => { refetchCats(); refetchVaccines(); refetchMeds(); refetchExpenses(); loadNotes(); };
+
+  const hasDebt = (expenses?.totalRemaining ?? 0) > 0;
+  const debtColor = hasDebt ? colors.destructive : colors.success;
 
   const completedMeds = todayMeds?.filter((m) => m.status === 'given').length ?? 0;
   const totalMeds = todayMeds?.length ?? 0;
@@ -154,6 +160,46 @@ export const HomeScreen = () => {
             </Text>
           </View>
         </Card>
+      )}
+
+      {/* Vet debt across all cats */}
+      {expenses && expenses.expenseCount > 0 && (
+        <View>
+          <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Veteriner Borcu</Text>
+          <Card noPadding>
+            <View style={styles.debtHeader}>
+              <View style={[styles.debtIcon, { backgroundColor: hasDebt ? colors.destructiveTint : colors.successTint }]}>
+                <Wallet size={22} color={debtColor} strokeWidth={2.2} />
+              </View>
+              <View style={styles.debtHeaderText}>
+                <Text style={styles.debtLabel}>{hasDebt ? 'Toplam kalan borç' : 'Tüm borçlar ödendi'}</Text>
+                <Text style={[styles.debtValue, { color: debtColor }]}>{formatCurrency(expenses.totalRemaining)}</Text>
+              </View>
+            </View>
+            <View style={styles.debtTotals}>
+              <Text style={styles.debtTotalText}>
+                Harcama <Text style={styles.debtTotalStrong}>{formatCurrency(expenses.totalAmount)}</Text>
+              </Text>
+              <Text style={styles.debtTotalText}>
+                Ödenen <Text style={[styles.debtTotalStrong, { color: colors.success }]}>{formatCurrency(expenses.totalPaid)}</Text>
+              </Text>
+            </View>
+            {expenses.cats.map((c) => (
+              <TouchableOpacity
+                key={c.catId}
+                activeOpacity={0.8}
+                onPress={() => nav.navigate('ExpenseList', { catId: c.catId, catName: c.catName })}
+                style={styles.debtCatRow}
+              >
+                <Text style={styles.debtCatName} numberOfLines={1}>{c.catName}</Text>
+                <Text style={[styles.debtCatValue, { color: c.totalRemaining > 0 ? colors.destructive : colors.success }]}>
+                  {c.totalRemaining > 0 ? `${formatCurrency(c.totalRemaining)} borç` : 'Ödendi'}
+                </Text>
+                <ChevronRight size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            ))}
+          </Card>
+        </View>
       )}
 
       {/* Today's medications */}
@@ -314,6 +360,26 @@ const styles = StyleSheet.create({
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   sectionTitle: { fontFamily: fonts.serif, fontSize: 20, color: colors.foreground, letterSpacing: -0.3 },
+  sectionTitleSpaced: { marginBottom: spacing.md },
+
+  debtHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
+  debtIcon: { width: 44, height: 44, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  debtHeaderText: { flex: 1 },
+  debtLabel: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  debtValue: { fontFamily: fonts.serif, fontSize: 28, letterSpacing: -0.5 },
+  debtTotals: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingBottom: spacing.md,
+  },
+  debtTotalText: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  debtTotalStrong: { fontFamily: fonts.sansBold, color: colors.foreground },
+  debtCatRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  debtCatName: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 15, color: colors.foreground },
+  debtCatValue: { fontFamily: fonts.sansBold, fontSize: 14 },
   seeAll: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.primary },
   emptySection: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
 

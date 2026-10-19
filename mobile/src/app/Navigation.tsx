@@ -30,6 +30,9 @@ import { SymptomAssistantScreen } from '../screens/assistant/SymptomAssistantScr
 import { AccountInfoScreen } from '../screens/settings/AccountInfoScreen';
 import { AppSettingsScreen } from '../screens/settings/AppSettingsScreen';
 import { SupportScreen } from '../screens/settings/SupportScreen';
+import { ExpenseListScreen } from '../screens/expenses/ExpenseListScreen';
+import { AddExpenseScreen } from '../screens/expenses/AddExpenseScreen';
+import { AddPaymentScreen } from '../screens/expenses/AddPaymentScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -48,6 +51,9 @@ export type RootStackParamList = {
   AccountInfo: undefined;
   AppSettings: undefined;
   Support: undefined;
+  ExpenseList: { catId: string; catName: string };
+  AddExpense: { catId: string };
+  AddPayment: { catId: string; expenseId: string; title: string; remaining: number };
 };
 
 export type AuthStackParamList = {
@@ -205,6 +211,9 @@ export const Navigation = () => {
             <Stack.Screen name="AccountInfo" component={AccountInfoScreen} options={{ headerShown: false }} />
             <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={({ route }) => ({ title: `${(route.params as { catName: string }).catName} · Ödemeler` })} />
+            <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Gider Ekle' }} />
+            <Stack.Screen name="AddPayment" component={AddPaymentScreen} options={{ title: 'Ödeme Ekle' }} />
           </>
         )}
       </Stack.Navigator>

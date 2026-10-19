@@ -10,5 +10,7 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<WeightLog> WeightLogs { get; }
     IGenericRepository<Medication> Medications { get; }
     IGenericRepository<MedicationLog> MedicationLogs { get; }
+    IGenericRepository<VetExpense> VetExpenses { get; }
+    IGenericRepository<VetPayment> VetPayments { get; }
     Task<int> SaveChangesAsync();
 }

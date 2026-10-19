@@ -45,6 +45,7 @@ builder.Services.AddScoped<CatService>();
 builder.Services.AddScoped<VaccineService>();
 builder.Services.AddScoped<WeightService>();
 builder.Services.AddScoped<MedicationService>();
+builder.Services.AddScoped<ExpenseService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AssistantService>();
 builder.Services.AddMemoryCache(); // asistan günlük sorgu hakları

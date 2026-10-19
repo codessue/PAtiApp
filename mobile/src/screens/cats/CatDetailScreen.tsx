@@ -12,11 +12,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, ChevronLeft, Plus, Settings, Syringe } from 'lucide-react-native';
+import { BookOpen, ChevronLeft, Plus, Settings, Syringe, Wallet } from 'lucide-react-native';
 import { RootStackParamList } from '../../app/Navigation';
 import { useCat, useDeleteCat } from '../../hooks/useCats';
 import { useWeightLogs } from '../../hooks/useWeightLogs';
 import { useNotesStore } from '../../stores/notesStore';
+import { useExpenseSummary } from '../../hooks/useExpenses';
 import { colors } from '../../constants/colors';
 import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
@@ -28,10 +29,11 @@ import {
   getVaccineUrgencyLabel,
 } from '../../utils/dateHelpers';
 import { mediaUrl } from '../../utils/media';
+import { formatCurrency } from '../../utils/currency';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
-const TABS = ['Özet', 'Günlük', 'Aşılar', 'Kilo', 'İlaçlar'] as const;
+const TABS = ['Özet', 'Günlük', 'Aşılar', 'Kilo', 'İlaçlar', 'Ödemeler'] as const;
 type TabKey = typeof TABS[number];
 
 // Light-blue gender accent (per design; not part of the core token palette).
@@ -47,6 +49,7 @@ export const CatDetailScreen = () => {
   const { mutateAsync: deleteCat } = useDeleteCat();
   const { data: weightLogs } = useWeightLogs(catId);
   const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
+  const { data: expenseSummary } = useExpenseSummary(catId);
   const [activeTab, setActiveTab] = useState<TabKey>('Özet');
 
   // Full-bleed hero needs the native stack header hidden (presentation only).
@@ -87,6 +90,7 @@ export const CatDetailScreen = () => {
     if (activeTab === 'Kilo') nav.navigate('AddWeight', { catId: cat.id });
     else if (activeTab === 'İlaçlar') nav.navigate('AddMedication', { catId: cat.id });
     else if (activeTab === 'Günlük') nav.navigate('NoteEditor', { catId: cat.id });
+    else if (activeTab === 'Ödemeler') nav.navigate('AddExpense', { catId: cat.id });
     else nav.navigate('AddVaccine', { catId: cat.id });
   };
 
@@ -239,6 +243,30 @@ export const CatDetailScreen = () => {
                 </View>
               </View>
 
+              {/* Vet payments */}
+              {expenseSummary && expenseSummary.expenseCount > 0 && (
+                <View>
+                  <Text style={styles.sectionTitle}>Veteriner Ödemeleri</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })}
+                    style={[styles.summaryCard, styles.cardRow]}
+                  >
+                    <View style={[styles.iconTile, { backgroundColor: colors.primaryTint }]}>
+                      <Wallet size={20} color={colors.primary} strokeWidth={2.2} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cardTitle}>{`Toplam ${formatCurrency(expenseSummary.totalAmount)}`}</Text>
+                      <Text style={[styles.cardStatus, { color: expenseSummary.totalRemaining > 0 ? colors.destructive : colors.success }]}>
+                        {expenseSummary.totalRemaining > 0
+                          ? `${formatCurrency(expenseSummary.totalRemaining)} borç kaldı`
+                          : 'Tüm borçlar ödendi'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <Button title="Dostu Sil" variant="danger" onPress={handleDelete} />
             </View>
           )}
@@ -298,6 +326,10 @@ export const CatDetailScreen = () => {
 
           {activeTab === 'İlaçlar' && (
             <Button title="İlaç Listesini Görüntüle" onPress={() => nav.navigate('MedicationList', { catId: cat.id, catName: cat.name })} />
+          )}
+
+          {activeTab === 'Ödemeler' && (
+            <Button title="Ödemeleri ve Borcu Görüntüle" onPress={() => nav.navigate('ExpenseList', { catId: cat.id, catName: cat.name })} />
           )}
         </View>
       </ScrollView>

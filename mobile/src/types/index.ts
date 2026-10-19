@@ -114,6 +114,50 @@ export interface SymptomCheckResult {
   disclaimer: string;
 }
 
+export type ExpenseCategory = 'exam' | 'treatment' | 'medication' | 'vaccine' | 'surgery' | 'lab' | 'other';
+
+export interface VetPayment {
+  id: string;
+  expenseId: string;
+  amount: number;
+  paidAt: string;
+  notes?: string;
+}
+
+export interface VetExpense {
+  id: string;
+  catId: string;
+  title: string;
+  category: ExpenseCategory;
+  clinicName?: string;
+  expenseDate: string;
+  amount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  notes?: string;
+  payments: VetPayment[];
+}
+
+export interface ExpenseSummary {
+  totalAmount: number;
+  totalPaid: number;
+  totalRemaining: number;
+  expenseCount: number;
+  unpaidCount: number;
+}
+
+export interface CatExpenseSummary {
+  catId: string;
+  catName: string;
+  totalAmount: number;
+  totalPaid: number;
+  totalRemaining: number;
+}
+
+export interface OverallExpenseSummary extends ExpenseSummary {
+  cats: CatExpenseSummary[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

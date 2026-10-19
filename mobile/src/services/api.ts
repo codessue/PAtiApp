@@ -144,3 +144,15 @@ export const medicationsApi = {
     data: { status: string; notes?: string; reminderTime?: string },
   ) => api.post(`/cats/${catId}/medications/${id}/log`, data),
 };
+
+export const expensesApi = {
+  getByCat: (catId: string) => api.get(`/cats/${catId}/expenses`),
+  getSummary: (catId: string) => api.get(`/cats/${catId}/expenses/summary`),
+  getOverallSummary: () => api.get('/expenses/summary'),
+  create: (catId: string, data: unknown) => api.post(`/cats/${catId}/expenses`, data),
+  delete: (catId: string, id: string) => api.delete(`/cats/${catId}/expenses/${id}`),
+  addPayment: (catId: string, id: string, data: { amount: number; paidAt: string; notes?: string }) =>
+    api.post(`/cats/${catId}/expenses/${id}/payments`, data),
+  deletePayment: (catId: string, id: string, paymentId: string) =>
+    api.delete(`/cats/${catId}/expenses/${id}/payments/${paymentId}`),
+};

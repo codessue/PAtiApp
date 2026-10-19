@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WeightLog> WeightLogs => Set<WeightLog>();
     public DbSet<Medication> Medications => Set<Medication>();
     public DbSet<MedicationLog> MedicationLogs => Set<MedicationLog>();
+    public DbSet<VetExpense> VetExpenses => Set<VetExpense>();
+    public DbSet<VetPayment> VetPayments => Set<VetPayment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -115,6 +117,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Status).HasColumnName("status").HasMaxLength(10);
             e.Property(x => x.Notes).HasColumnName("notes");
             e.HasOne(x => x.Medication).WithMany(m => m.MedicationLogs).HasForeignKey(x => x.MedicationId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<VetExpense>(e =>
+        {
+            e.ToTable("vet_expenses");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CatId).HasColumnName("cat_id");
+            e.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
+            e.Property(x => x.Category).HasColumnName("category").HasMaxLength(20).IsRequired();
+            e.Property(x => x.ClinicName).HasColumnName("clinic_name").HasMaxLength(100);
+            e.Property(x => x.ExpenseDate).HasColumnName("expense_date").IsRequired();
+            e.Property(x => x.Amount).HasColumnName("amount").HasColumnType("decimal(12,2)").IsRequired();
+            e.Property(x => x.Notes).HasColumnName("notes");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.HasOne(x => x.Cat).WithMany(c => c.VetExpenses).HasForeignKey(x => x.CatId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<VetPayment>(e =>
+        {
+            e.ToTable("vet_payments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.ExpenseId).HasColumnName("expense_id");
+            e.Property(x => x.Amount).HasColumnName("amount").HasColumnType("decimal(12,2)").IsRequired();
+            e.Property(x => x.PaidAt).HasColumnName("paid_at").IsRequired();
+            e.Property(x => x.Notes).HasColumnName("notes");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.HasOne(x => x.Expense).WithMany(x => x.Payments).HasForeignKey(x => x.ExpenseId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

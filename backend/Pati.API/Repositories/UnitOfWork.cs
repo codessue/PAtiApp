@@ -11,6 +11,8 @@ public class UnitOfWork(AppDbContext context) : IUnitOfWork
     private IGenericRepository<WeightLog>? _weightLogs;
     private IGenericRepository<Medication>? _medications;
     private IGenericRepository<MedicationLog>? _medicationLogs;
+    private IGenericRepository<VetExpense>? _vetExpenses;
+    private IGenericRepository<VetPayment>? _vetPayments;
 
     public IGenericRepository<User> Users => _users ??= new GenericRepository<User>(context);
     public IGenericRepository<Cat> Cats => _cats ??= new GenericRepository<Cat>(context);
@@ -18,6 +20,8 @@ public class UnitOfWork(AppDbContext context) : IUnitOfWork
     public IGenericRepository<WeightLog> WeightLogs => _weightLogs ??= new GenericRepository<WeightLog>(context);
     public IGenericRepository<Medication> Medications => _medications ??= new GenericRepository<Medication>(context);
     public IGenericRepository<MedicationLog> MedicationLogs => _medicationLogs ??= new GenericRepository<MedicationLog>(context);
+    public IGenericRepository<VetExpense> VetExpenses => _vetExpenses ??= new GenericRepository<VetExpense>(context);
+    public IGenericRepository<VetPayment> VetPayments => _vetPayments ??= new GenericRepository<VetPayment>(context);
 
     public async Task<int> SaveChangesAsync() => await context.SaveChangesAsync();
 

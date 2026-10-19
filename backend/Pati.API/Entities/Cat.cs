@@ -20,4 +20,5 @@ public class Cat
     public ICollection<VaccineSchedule> VaccineSchedules { get; set; } = new List<VaccineSchedule>();
     public ICollection<WeightLog> WeightLogs { get; set; } = new List<WeightLog>();
     public ICollection<Medication> Medications { get; set; } = new List<Medication>();
+    public ICollection<VetExpense> VetExpenses { get; set; } = new List<VetExpense>();
 }

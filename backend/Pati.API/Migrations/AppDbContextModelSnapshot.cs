@@ -300,6 +300,91 @@ namespace Pati.API.Migrations
                     b.ToTable("vaccine_schedules", (string)null);
                 });
 
+            modelBuilder.Entity("Pati.API.Entities.VetExpense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("CatId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cat_id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("ClinicName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("clinic_name");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("ExpenseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expense_date");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatId");
+
+                    b.ToTable("vet_expenses", (string)null);
+                });
+
+            modelBuilder.Entity("Pati.API.Entities.VetPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ExpenseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("expense_id");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<DateOnly>("PaidAt")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpenseId");
+
+                    b.ToTable("vet_payments", (string)null);
+                });
+
             modelBuilder.Entity("Pati.API.Entities.WeightLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -378,6 +463,28 @@ namespace Pati.API.Migrations
                     b.Navigation("Cat");
                 });
 
+            modelBuilder.Entity("Pati.API.Entities.VetExpense", b =>
+                {
+                    b.HasOne("Pati.API.Entities.Cat", "Cat")
+                        .WithMany("VetExpenses")
+                        .HasForeignKey("CatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cat");
+                });
+
+            modelBuilder.Entity("Pati.API.Entities.VetPayment", b =>
+                {
+                    b.HasOne("Pati.API.Entities.VetExpense", "Expense")
+                        .WithMany("Payments")
+                        .HasForeignKey("ExpenseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Expense");
+                });
+
             modelBuilder.Entity("Pati.API.Entities.WeightLog", b =>
                 {
                     b.HasOne("Pati.API.Entities.Cat", "Cat")
@@ -395,6 +502,8 @@ namespace Pati.API.Migrations
 
                     b.Navigation("VaccineSchedules");
 
+                    b.Navigation("VetExpenses");
+
                     b.Navigation("WeightLogs");
                 });
 
@@ -406,6 +515,11 @@ namespace Pati.API.Migrations
             modelBuilder.Entity("Pati.API.Entities.User", b =>
                 {
                     b.Navigation("Cats");
+                });
+
+            modelBuilder.Entity("Pati.API.Entities.VetExpense", b =>
+                {
+                    b.Navigation("Payments");
                 });
 #pragma warning restore 612, 618
         }

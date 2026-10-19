@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Heart } from 'lucide-react-native';
 import { isUserCancelledError, useIAP } from 'expo-iap';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { CUSTOM_AMOUNTS, SUPPORT_PRODUCTS, SUPPORT_SKUS } from '../../constants/supportProducts';
+import { SUPPORT_CATS } from '../../constants/supportCats';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
@@ -78,6 +79,21 @@ export const FoodSupportScreen = () => {
           masrafına küçük bir destek olmak istersen aşağıdan bir mama seçebilirsin.
         </Text>
       </View>
+
+      {SUPPORT_CATS.length > 0 ? (
+        <View style={styles.cats}>
+          <Text style={styles.customTitle}>Baktığım kediler</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catsScroll} contentContainerStyle={styles.catsRow}>
+            {SUPPORT_CATS.map((cat) => (
+              <View key={cat.name} style={styles.catCard}>
+                <Image source={cat.photo} style={styles.catPhoto} resizeMode="cover" />
+                <Text style={styles.catName} numberOfLines={1}>{cat.name}</Text>
+                {cat.note ? <Text style={styles.catNote} numberOfLines={2}>{cat.note}</Text> : null}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       {thanked ? (
         <Card style={styles.thanks}>
@@ -178,6 +194,15 @@ const styles = StyleSheet.create({
   heroEmoji: { fontSize: 56 },
   title: { fontFamily: fonts.serif, fontSize: 28, color: colors.foreground, letterSpacing: -0.5 },
   body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 22, color: colors.mutedForeground, textAlign: 'center' },
+
+  cats: { gap: spacing.md },
+  // Negatif yatay kenar boşluğu: kartlar ekran kenarına kadar kaysın.
+  catsScroll: { marginHorizontal: -24 },
+  catsRow: { gap: spacing.md, paddingHorizontal: 24 },
+  catCard: { width: 140, gap: 4 },
+  catPhoto: { width: 140, height: 140, borderRadius: radius.xl, backgroundColor: colors.muted },
+  catName: { fontFamily: fonts.sansBold, fontSize: 15, color: colors.foreground, marginTop: 4 },
+  catNote: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 16, color: colors.mutedForeground },
 
   list: { gap: spacing.md },
   row: {

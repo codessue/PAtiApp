@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { expensesApi } from '../services/api';
-import { ExpenseCategory, ExpenseSummary, VetExpense } from '../types';
+import { ExpenseCategory, ExpenseSummary, OverallExpenseSummary, VetExpense } from '../types';
 
 export const useExpenses = (catId: string) =>
   useQuery<VetExpense[]>({
@@ -22,6 +22,17 @@ export const useExpenseSummary = (catId: string) =>
     enabled: !!catId,
   });
 
+export const useOverallExpenseSummary = () =>
+  useQuery<OverallExpenseSummary>({
+    queryKey: ['expenses', 'overall'],
+    queryFn: async () => {
+      const { data } = await expensesApi.getOverallSummary();
+      return data.data;
+    },
+  });
+
+// Mutations invalidate the whole 'expenses' prefix so the per-cat lists and
+// the home-screen overall summary stay in sync.
 export const useCreateExpense = (catId: string) => {
   const qc = useQueryClient();
   return useMutation({
@@ -34,7 +45,7 @@ export const useCreateExpense = (catId: string) => {
       paidAmount?: number;
       notes?: string;
     }) => expensesApi.create(catId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', catId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 };
 
@@ -42,7 +53,7 @@ export const useDeleteExpense = (catId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => expensesApi.delete(catId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', catId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 };
 
@@ -51,7 +62,7 @@ export const useAddPayment = (catId: string) => {
   return useMutation({
     mutationFn: ({ expenseId, ...data }: { expenseId: string; amount: number; paidAt: string; notes?: string }) =>
       expensesApi.addPayment(catId, expenseId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', catId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 };
 
@@ -60,6 +71,6 @@ export const useDeletePayment = (catId: string) => {
   return useMutation({
     mutationFn: ({ expenseId, paymentId }: { expenseId: string; paymentId: string }) =>
       expensesApi.deletePayment(catId, expenseId, paymentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', catId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 };

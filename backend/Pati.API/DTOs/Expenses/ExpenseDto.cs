@@ -35,3 +35,20 @@ public record ExpenseSummaryDto(
     int ExpenseCount,
     int UnpaidCount
 );
+
+public record CatExpenseSummaryDto(
+    Guid CatId,
+    string CatName,
+    decimal TotalAmount,
+    decimal TotalPaid,
+    decimal TotalRemaining
+);
+
+public record OverallExpenseSummaryDto(
+    decimal TotalAmount,
+    decimal TotalPaid,
+    decimal TotalRemaining,
+    int ExpenseCount,
+    int UnpaidCount,
+    IEnumerable<CatExpenseSummaryDto> Cats
+);

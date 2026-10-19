@@ -41,6 +41,33 @@ public class ExpenseService(IUnitOfWork uow, AppDbContext context)
         return new ExpenseSummaryDto(totalAmount, totalPaid, totalAmount - totalPaid, expenses.Count, unpaidCount);
     }
 
+    public async Task<OverallExpenseSummaryDto> GetOverallSummaryAsync(Guid userId)
+    {
+        var expenses = await context.VetExpenses
+            .Include(e => e.Cat)
+            .Include(e => e.Payments)
+            .Where(e => e.Cat.UserId == userId)
+            .ToListAsync();
+
+        var cats = expenses
+            .GroupBy(e => new { e.CatId, e.Cat.Name })
+            .Select(g =>
+            {
+                var total = g.Sum(e => e.Amount);
+                var paid = g.Sum(e => e.Payments.Sum(p => p.Amount));
+                return new CatExpenseSummaryDto(g.Key.CatId, g.Key.Name, total, paid, total - paid);
+            })
+            .OrderByDescending(c => c.TotalRemaining)
+            .ThenBy(c => c.CatName)
+            .ToList();
+
+        var totalAmount = cats.Sum(c => c.TotalAmount);
+        var totalPaid = cats.Sum(c => c.TotalPaid);
+        var unpaidCount = expenses.Count(e => e.Amount - e.Payments.Sum(p => p.Amount) > 0);
+
+        return new OverallExpenseSummaryDto(totalAmount, totalPaid, totalAmount - totalPaid, expenses.Count, unpaidCount, cats);
+    }
+
     public async Task<VetExpenseDto> CreateExpenseAsync(Guid catId, Guid userId, CreateVetExpenseDto dto)
     {
         await EnsureCatOwnership(catId, userId);

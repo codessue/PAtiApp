@@ -24,6 +24,13 @@ public class ExpensesController(ExpenseService expenseService) : BaseController
         return Ok(ApiResponse<ExpenseSummaryDto>.Ok(summary));
     }
 
+    [HttpGet("/api/expenses/summary")]
+    public async Task<IActionResult> GetOverallSummary()
+    {
+        var summary = await expenseService.GetOverallSummaryAsync(CurrentUserId);
+        return Ok(ApiResponse<OverallExpenseSummaryDto>.Ok(summary));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(Guid catId, [FromBody] CreateVetExpenseDto dto)
     {

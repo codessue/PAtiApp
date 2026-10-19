@@ -105,6 +105,18 @@ export interface ExpenseSummary {
   unpaidCount: number;
 }
 
+export interface CatExpenseSummary {
+  catId: string;
+  catName: string;
+  totalAmount: number;
+  totalPaid: number;
+  totalRemaining: number;
+}
+
+export interface OverallExpenseSummary extends ExpenseSummary {
+  cats: CatExpenseSummary[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

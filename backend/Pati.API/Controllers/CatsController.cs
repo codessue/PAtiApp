@@ -41,11 +41,12 @@ public class CatsController(CatService catService) : BaseController
     public async Task<IActionResult> Delete(Guid id)
     {
         await catService.DeleteCatAsync(id, CurrentUserId);
-        return Ok(ApiResponse.OkEmpty("Kedi silindi."));
+        return Ok(ApiResponse.OkEmpty("Dost silindi."));
     }
 
     [HttpPost("{id:guid}/photo")]
-    public async Task<IActionResult> UploadPhoto(Guid id, IFormFile photo)
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPhoto(Guid id, IFormFile? photo)
     {
         var url = await catService.UpdatePhotoAsync(id, CurrentUserId, photo);
         return Ok(ApiResponse<string>.Ok(url, "Fotoğraf yüklendi."));

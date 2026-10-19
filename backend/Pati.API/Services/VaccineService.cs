@@ -76,7 +76,6 @@ public class VaccineService(IUnitOfWork uow, AppDbContext context)
     public async Task<IEnumerable<VaccineDto>> GetUpcomingVaccinesAsync(Guid userId, int days = 30)
     {
         var targetDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(days));
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var vaccines = await context.VaccineSchedules
             .Include(v => v.Cat)
@@ -90,7 +89,7 @@ public class VaccineService(IUnitOfWork uow, AppDbContext context)
     private async Task EnsureCatOwnership(Guid catId, Guid userId)
     {
         var exists = await uow.Cats.AnyAsync(c => c.Id == catId && c.UserId == userId);
-        if (!exists) throw new KeyNotFoundException("Kedi bulunamadı.");
+        if (!exists) throw new KeyNotFoundException("Dost bulunamadı.");
     }
 
     private static VaccineDto MapToDto(VaccineSchedule v, string? catName = null)

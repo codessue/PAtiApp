@@ -52,6 +52,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+/**
+ * Ayarlar ekranı için: izin istemeden yalnızca mevcut durumu okur.
+ * `requestNotificationPermission` kullanıcıya sistem penceresi gösterdiğinden,
+ * durum göstermek isteyen ekranlar bunu çağırmalı.
+ */
+export async function hasNotificationPermission(): Promise<boolean> {
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+}
+
 export async function registerPushToken(): Promise<void> {
   try {
     const granted = await requestNotificationPermission();
@@ -71,26 +81,47 @@ export async function registerPushToken(): Promise<void> {
   }
 }
 
+// "08:00" → { hour: 8, minute: 0 }. Bozuk bir değer NaN üretip bildirim
+// kurulumunu (ve onu çağıran kaydetme akışını) hataya düşürüyordu.
+const parseReminderTime = (timeStr: string): { hour: number; minute: number } | null => {
+  const [h, m] = timeStr.split(':');
+  const hour = Number(h);
+  const minute = Number(m);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+};
+
 export async function scheduleMedicationNotifications(medication: Medication): Promise<void> {
   await cancelMedicationNotifications(medication.id);
 
   if (!medication.isActive) return;
 
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
   for (const timeStr of medication.reminderTimes) {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const parsed = parseReminderTime(timeStr);
+    if (!parsed) {
+      console.warn(`İlaç hatırlatması atlandı — geçersiz saat: ${timeStr}`);
+      continue;
+    }
 
     await Notifications.scheduleNotificationAsync({
       identifier: `med_${medication.id}_${timeStr}`,
       content: {
         title: 'İlaç Zamanı 💊',
-        body: `${medication.catName ?? 'Kediniz'} için ${medication.name} zamanı!`,
+        body: `${medication.catName ?? 'Dostunuz'} için ${medication.name} zamanı!`,
         data: { medicationId: medication.id, type: 'medication' },
         sound: 'default',
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: hours,
-        minute: minutes,
+        hour: parsed.hour,
+        minute: parsed.minute,
+        // Android'de kanal verilmezse yüksek öncelikli "medications" kanalı
+        // yerine varsayılan kanal kullanılıyordu.
+        channelId: 'medications',
       },
     });
   }

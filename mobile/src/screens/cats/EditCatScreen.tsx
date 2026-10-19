@@ -227,7 +227,7 @@ export const EditCatScreen = () => {
             <View style={styles.toggleTile}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.toggleTitle}>Kısırlaştırılmış</Text>
-                <Text style={styles.toggleSub}>Kediniz kısırlaştırıldı mı?</Text>
+                <Text style={styles.toggleSub}>Dostunuz kısırlaştırıldı mı?</Text>
               </View>
               <Switch
                 value={value}

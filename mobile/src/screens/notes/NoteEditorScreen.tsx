@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -28,6 +28,7 @@ import { NOTE_CATEGORIES } from '../../constants/noteCategories';
 import { MOODS } from '../../constants/moods';
 import { NoteCategory } from '../../types';
 import { formatDateTime } from '../../utils/dateHelpers';
+import { persistPickedPhoto } from '../../utils/photoStorage';
 
 // Default reminder = next full hour from now.
 const defaultReminder = (): Date => {
@@ -42,7 +43,7 @@ export const NoteEditorScreen = () => {
   const route = useRoute();
   const { noteId, catId: presetCatId } = (route.params ?? {}) as { noteId?: string; catId?: string };
 
-  const { notes, saveNote, deleteNote } = useNotesStore();
+  const { notes, loaded: notesLoaded, load: loadNotes, saveNote, deleteNote } = useNotesStore();
   const { data: cats } = useCats();
   const existing = useMemo(() => notes.find((n) => n.id === noteId), [notes, noteId]);
 
@@ -62,13 +63,33 @@ export const NoteEditorScreen = () => {
   const [picker, setPicker] = useState<null | 'date' | 'time' | 'ios'>(null);
   const [iosTemp, setIosTemp] = useState<Date>(reminderDate);
 
+  // Notlar henüz yüklenmediyse (bildirimden ya da soğuk açılış) düzenlenen not
+  // bellekte olmaz; yüklendiğinde formu bir kez doldur — aksi hâlde ekran boş
+  // açılıp kaydedildiğinde notun içeriği silinirdi.
+  useEffect(() => { if (!notesLoaded) loadNotes(); }, [notesLoaded, loadNotes]);
+
+  const hydratedId = useRef<string | undefined>(existing?.id);
+  useEffect(() => {
+    if (!existing || hydratedId.current === existing.id) return;
+    hydratedId.current = existing.id;
+    setTitle(existing.title);
+    setBody(existing.body);
+    setCategory(existing.category);
+    setCatId(existing.catId);
+    setPhotoUri(existing.photoUri);
+    setMood(existing.mood);
+    setReminderOn(!!existing.reminderAt);
+    if (existing.reminderAt) setReminderDate(new Date(existing.reminderAt));
+  }, [existing]);
+
   useLayoutEffect(() => {
     nav.setOptions({ headerShown: false });
   }, [nav]);
 
   const onSave = async () => {
-    if (!title.trim() && !body.trim()) {
-      Alert.alert('Boş not', 'Lütfen bir başlık ya da içerik gir.');
+    // Sadece fotoğraf ya da ruh hali de geçerli bir günlük kaydıdır.
+    if (!title.trim() && !body.trim() && !photoUri && !mood) {
+      Alert.alert('Boş kayıt', 'Bir başlık, içerik, fotoğraf ya da ruh hali ekle.');
       return;
     }
     setSaving(true);
@@ -116,7 +137,8 @@ export const NoteEditorScreen = () => {
       quality: 0.8,
     });
     if (!result.canceled && result.assets.length > 0) {
-      setPhotoUri(result.assets[0].uri);
+      // Seçici fotoğrafı önbelleğe koyar; anı kaybolmasın diye kalıcı klasöre alıyoruz.
+      setPhotoUri(persistPickedPhoto(result.assets[0].uri));
     }
   };
 

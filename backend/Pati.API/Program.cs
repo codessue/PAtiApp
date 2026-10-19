@@ -26,6 +26,14 @@ builder.Host.UseSerilog();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Veritabanı bağlantı dizesi bulunamadı.");
 
+// appsettings.json'daki "${DB_HOST}" gibi yer tutucular .NET tarafından
+// çözülmez; ortam değişkeni verilmediyse uygulama anlaşılmaz bir bağlantı
+// hatasıyla değil, net bir mesajla durmalı.
+if (connectionString.Contains("${"))
+    throw new InvalidOperationException(
+        "Veritabanı bağlantı dizesindeki ortam değişkenleri doldurulmamış. " +
+        "ConnectionStrings__DefaultConnection ayarlayın (bkz. .env / docker-compose.yml).");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -48,6 +56,12 @@ builder.Services.AddHangfireServer();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("JWT secret bulunamadı.");
+
+// HMAC-SHA256 en az 256 bit anahtar ister; kısa ya da çözülmemiş ("${JWT_SECRET}")
+// bir değer ilk giriş denemesinde 500 olarak patlardı — açılışta yakalıyoruz.
+if (jwtSecret.Contains("${") || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+    throw new InvalidOperationException(
+        "JWT secret geçersiz: en az 32 karakter olmalı ve Jwt__Secret ortam değişkeniyle verilmeli.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

@@ -20,6 +20,8 @@
     "axios": "^1.13.6",
     "date-fns": "^4.1.0",
     "expo": "~55.0.5",
+    "expo-constants": "~55.0.7",
+    "expo-file-system": "55.0.10",
     "expo-font": "~55.0.4",
     "expo-image-manipulator": "~55.0.9",
     "expo-image-picker": "~55.0.11",

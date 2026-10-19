@@ -7,8 +7,18 @@ namespace Pati.API.Controllers;
 [Route("api/[controller]")]
 public abstract class BaseController : ControllerBase
 {
-    protected Guid CurrentUserId =>
-        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub")
-            ?? throw new UnauthorizedAccessException("Kullanıcı kimliği bulunamadı."));
+    /// <summary>
+    /// Token'daki kullanıcı kimliği. Claim yoksa ya da Guid'e çevrilemiyorsa 401
+    /// döner — Guid.Parse doğrudan çağrılırsa bozuk bir token 500'e yol açardı.
+    /// </summary>
+    protected Guid CurrentUserId
+    {
+        get
+        {
+            var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(raw, out var id))
+                throw new UnauthorizedAccessException("Kullanıcı kimliği bulunamadı.");
+            return id;
+        }
+    }
 }

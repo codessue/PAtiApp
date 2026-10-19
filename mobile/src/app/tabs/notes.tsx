@@ -15,6 +15,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Bell, BellRing, Pin, Plus } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
+import { DIARY_REMINDER_PREF } from '../../constants/app';
 import { useNotesStore } from '../../stores/notesStore';
 import { useCats } from '../../hooks/useCats';
 import { colors } from '../../constants/colors';
@@ -32,7 +33,6 @@ import {
 type Nav = StackNavigationProp<RootStackParamList>;
 type ViewMode = 'gunluk' | 'liste';
 
-const DIARY_REMINDER_PREF = 'diaryReminderOn';
 
 const isUpcoming = (n: Note): boolean =>
   !!n.reminderAt && new Date(n.reminderAt).getTime() > Date.now();

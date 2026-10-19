@@ -38,6 +38,10 @@ export const useDeleteWeight = (catId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => weightApi.delete(catId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['weight', catId] }),
+    // Kilo silindiğinde dost kartındaki "son kilo" da değişir.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['weight', catId] });
+      qc.invalidateQueries({ queryKey: ['cats'] });
+    },
   });
 };

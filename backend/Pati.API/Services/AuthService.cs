@@ -2,24 +2,40 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Pati.API.Data;
 using Pati.API.DTOs.Auth;
 using Pati.API.Entities;
 using Pati.API.Repositories;
 
 namespace Pati.API.Services;
 
-public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnvironment env)
+public class AuthService(IUnitOfWork uow, AppDbContext context, IConfiguration config, IWebHostEnvironment env)
 {
+    // İstemci doğrulaması atlanabildiği için (Swagger, doğrudan istek) kurallar
+    // burada da uygulanır: geçersiz veri 400 ile Türkçe bir mesaj döner.
+    private const int MinPasswordLength = 6;
+
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
-        if (await uow.Users.AnyAsync(u => u.Email == dto.Email.ToLower()))
+        var name = (dto.Name ?? string.Empty).Trim();
+        var email = NormalizeEmail(dto.Email);
+
+        if (name.Length < 2)
+            throw new InvalidOperationException("Lütfen adınızı girin (en az 2 karakter).");
+        if (!IsValidEmail(email))
+            throw new InvalidOperationException("Geçerli bir e-posta adresi girin.");
+        if (string.IsNullOrEmpty(dto.Password) || dto.Password.Length < MinPasswordLength)
+            throw new InvalidOperationException($"Şifre en az {MinPasswordLength} karakter olmalı.");
+
+        if (await uow.Users.AnyAsync(u => u.Email == email))
             throw new InvalidOperationException("Bu email adresi zaten kayıtlı.");
 
         var user = new User
         {
-            Email = dto.Email.ToLower(),
-            Name = dto.Name,
+            Email = email,
+            Name = name,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12)
         };
 
@@ -35,7 +51,11 @@ public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnviron
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await uow.Users.FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower())
+        var email = NormalizeEmail(dto.Email);
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(dto.Password))
+            throw new UnauthorizedAccessException("Email veya şifre hatalı.");
+
+        var user = await uow.Users.FirstOrDefaultAsync(u => u.Email == email)
             ?? throw new UnauthorizedAccessException("Email veya şifre hatalı.");
 
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -53,6 +73,10 @@ public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnviron
 
     public async Task<AuthResponseDto> RefreshAsync(string refreshToken)
     {
+        // Boş token, RefreshToken'ı null olan ilk kullanıcıyla eşleşmemeli.
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new UnauthorizedAccessException("Geçersiz veya süresi dolmuş token.");
+
         var user = await uow.Users.FirstOrDefaultAsync(u =>
             u.RefreshToken == refreshToken && u.RefreshTokenExpiry > DateTime.UtcNow)
             ?? throw new UnauthorizedAccessException("Geçersiz veya süresi dolmuş token.");
@@ -87,21 +111,15 @@ public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnviron
             ?? throw new KeyNotFoundException("Kullanıcı bulunamadı.");
 
         // Fotoğraf dosyalarını temizle (KVKK — kişisel veri bırakma).
-        var cats = await uow.Cats.FindAsync(c => c.UserId == userId);
-        foreach (var cat in cats)
-        {
-            if (string.IsNullOrWhiteSpace(cat.PhotoUrl)) continue;
-            try
-            {
-                var relative = cat.PhotoUrl.TrimStart('/');
-                var path = Path.Combine(env.WebRootPath ?? "wwwroot", relative.Replace("uploads/", "uploads" + Path.DirectorySeparatorChar));
-                if (File.Exists(path)) File.Delete(path);
-            }
-            catch
-            {
-                // en-iyi-çaba: dosya silinemese de hesap silme devam eder
-            }
-        }
+        // IgnoreQueryFilters: soft-delete edilmiş dostların fotoğrafları da silinmeli.
+        var photoUrls = await context.Cats
+            .IgnoreQueryFilters()
+            .Where(c => c.UserId == userId && c.PhotoUrl != null)
+            .Select(c => c.PhotoUrl!)
+            .ToListAsync();
+
+        foreach (var photoUrl in photoUrls)
+            DeleteUploadedFile(photoUrl);
 
         uow.Users.Remove(user);
         await uow.SaveChangesAsync();
@@ -141,5 +159,41 @@ public class AuthService(IUnitOfWork uow, IConfiguration config, IWebHostEnviron
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
         return (accessToken, refreshToken);
+    }
+
+    private static string NormalizeEmail(string? email) =>
+        (email ?? string.Empty).Trim().ToLowerInvariant();
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 255) return false;
+        var at = email.IndexOf('@');
+        if (at <= 0 || at != email.LastIndexOf('@')) return false;
+        var domain = email[(at + 1)..];
+        return domain.Length >= 3 && domain.Contains('.')
+            && !domain.StartsWith('.') && !domain.EndsWith('.')
+            && !email.Contains(' ');
+    }
+
+    /// <summary>
+    /// "/uploads/cats/x.jpg" biçimindeki göreli yolu wwwroot altındaki dosyaya
+    /// çevirip siler. En-iyi-çaba: dosya silinemese de hesap silme devam eder.
+    /// </summary>
+    private void DeleteUploadedFile(string photoUrl)
+    {
+        try
+        {
+            var segments = photoUrl.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0 || segments.Any(seg => seg == "..")) return;
+
+            var root = Path.GetFullPath(env.WebRootPath ?? "wwwroot");
+            var path = Path.GetFullPath(Path.Combine([root, .. segments]));
+            if (!path.StartsWith(root, StringComparison.Ordinal)) return;
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // yoksayılır
+        }
     }
 }

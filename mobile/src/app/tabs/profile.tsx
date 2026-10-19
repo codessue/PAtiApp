@@ -1,26 +1,35 @@
 import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, ChevronRight, Info, LogOut, Settings, Trash2, User } from 'lucide-react-native';
+import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
+import { persistPickedPhoto } from '../../utils/photoStorage';
+import { confirmDeleteAccount } from '../../utils/confirmDeleteAccount';
 
-const MENU = [
-  { icon: User, label: 'Hesap Bilgileri' },
-  { icon: Settings, label: 'Uygulama Ayarları' },
-  { icon: Info, label: 'Yardım ve Destek' },
-] as const;
+type Nav = StackNavigationProp<RootStackParamList>;
+
+// Parametresiz üç ayar ekranı; satırlar tek döngüde çiziliyor.
+const MENU: { icon: typeof User; label: string; route: 'AccountInfo' | 'AppSettings' | 'Support' }[] = [
+  { icon: User, label: 'Hesap Bilgileri', route: 'AccountInfo' },
+  { icon: Settings, label: 'Uygulama Ayarları', route: 'AppSettings' },
+  { icon: Info, label: 'Yardım ve Destek', route: 'Support' },
+];
 
 const getInitials = (name?: string): string =>
   name ? name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : '🐱';
 
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
+  const nav = useNavigation<Nav>();
   const { user, logout, deleteAccount, avatarUri, setAvatarUri } = useAuthStore();
 
   const handleLogout = () => {
@@ -28,36 +37,6 @@ export const ProfileScreen = () => {
       { text: 'İptal', style: 'cancel' },
       { text: 'Çıkış Yap', style: 'destructive', onPress: logout },
     ]);
-  };
-
-  // App Store 5.1.1(v): uygulama içinden kalıcı hesap silme. Çift onaylı.
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Hesabı Sil',
-      'Hesabınız, dostlarınız ve tüm sağlık kayıtlarınız KALICI olarak silinecek. Bu işlem geri alınamaz.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Devam Et',
-          style: 'destructive',
-          onPress: () =>
-            Alert.alert('Emin misiniz?', 'Tüm verileriniz kalıcı olarak silinecek.', [
-              { text: 'Vazgeç', style: 'cancel' },
-              {
-                text: 'Hesabımı Kalıcı Olarak Sil',
-                style: 'destructive',
-                onPress: async () => {
-                  try {
-                    await deleteAccount();
-                  } catch {
-                    Alert.alert('Hata', 'Hesap silinemedi. Lütfen tekrar deneyin.');
-                  }
-                },
-              },
-            ]),
-        },
-      ]
-    );
   };
 
   const pickAvatar = async () => {
@@ -73,11 +52,9 @@ export const ProfileScreen = () => {
       quality: 0.8,
     });
     if (!result.canceled && result.assets.length > 0) {
-      await setAvatarUri(result.assets[0].uri);
+      await setAvatarUri(persistPickedPhoto(result.assets[0].uri));
     }
   };
-
-  const comingSoon = () => Alert.alert('Pati', 'Bu özellik çok yakında eklenecek.');
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -104,8 +81,8 @@ export const ProfileScreen = () => {
 
         {/* Menu */}
         <View style={styles.menu}>
-          {MENU.map(({ icon: Icon, label }) => (
-            <TouchableOpacity key={label} style={styles.menuRow} activeOpacity={0.8} onPress={comingSoon}>
+          {MENU.map(({ icon: Icon, label, route }) => (
+            <TouchableOpacity key={label} style={styles.menuRow} activeOpacity={0.8} onPress={() => nav.navigate(route)}>
               <View style={styles.menuIcon}>
                 <Icon size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
@@ -134,7 +111,7 @@ export const ProfileScreen = () => {
           icon={<LogOut size={20} color={colors.destructive} strokeWidth={2.2} />}
         />
 
-        <TouchableOpacity style={styles.deleteRow} activeOpacity={0.7} onPress={handleDeleteAccount}>
+        <TouchableOpacity style={styles.deleteRow} activeOpacity={0.7} onPress={() => confirmDeleteAccount(deleteAccount)}>
           <Trash2 size={16} color={colors.mutedForeground} strokeWidth={2} />
           <Text style={styles.deleteText}>Hesabımı Kalıcı Olarak Sil</Text>
         </TouchableOpacity>

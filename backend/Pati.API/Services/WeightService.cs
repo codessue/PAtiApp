@@ -83,6 +83,6 @@ public class WeightService(IUnitOfWork uow, AppDbContext context)
     private async Task EnsureCatOwnership(Guid catId, Guid userId)
     {
         var exists = await uow.Cats.AnyAsync(c => c.Id == catId && c.UserId == userId);
-        if (!exists) throw new KeyNotFoundException("Kedi bulunamadı.");
+        if (!exists) throw new KeyNotFoundException("Dost bulunamadı.");
     }
 }

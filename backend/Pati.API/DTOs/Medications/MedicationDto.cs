@@ -38,7 +38,11 @@ public record UpdateMedicationDto(
     string? Notes
 );
 
-public record LogMedicationDto(string Status, string? Notes);
+/// <summary>
+/// Bir dozun işaretlenmesi. <see cref="ReminderTime"/> ("HH:mm") verilirse durum
+/// yalnızca o saate işlenir; verilmezse kayıt "şu an" olarak düşülür.
+/// </summary>
+public record LogMedicationDto(string Status, string? Notes, string? ReminderTime = null);
 
 public record TodayMedicationDto(
     Guid MedicationId,

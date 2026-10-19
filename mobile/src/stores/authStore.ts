@@ -119,6 +119,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 // api.ts tarafında zaten silindi, burada yalnızca state ve yerel oturum temizlenir.
 setSessionExpiredHandler(() => {
   SecureStore.deleteItemAsync('user').catch(() => {});
+  // Profil ve kapak fotoğrafı cihaza kayıtlı ve hesaba bağlı değil; oturum
+  // düştüğünde temizlenmezse ardından giriş yapan hesap öncekinin fotoğrafını
+  // görüyordu (çıkışta zaten temizleniyor).
+  SecureStore.deleteItemAsync('avatarUri').catch(() => {});
+  SecureStore.deleteItemAsync('coverUri').catch(() => {});
   useNotesStore.setState({ notes: [], loaded: false });
-  useAuthStore.setState({ user: null, isAuthenticated: false });
+  useAuthStore.setState({ user: null, isAuthenticated: false, avatarUri: null, coverUri: null });
 });

@@ -21,5 +21,9 @@ public class UnitOfWork(AppDbContext context) : IUnitOfWork
 
     public async Task<int> SaveChangesAsync() => await context.SaveChangesAsync();
 
-    public void Dispose() => context.Dispose();
+    // AppDbContext scoped olarak DI tarafından yönetiliyor ve aynı scope'ta
+    // CatService/VaccineService gibi sınıflarla paylaşılıyor. Burada Dispose
+    // edilirse aynı istek içinde hâlâ kullanılan context kapanabilir; temizliği
+    // DI kapsayıcısına bırakıyoruz.
+    public void Dispose() => GC.SuppressFinalize(this);
 }

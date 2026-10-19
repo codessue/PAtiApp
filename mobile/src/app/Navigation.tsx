@@ -27,6 +27,9 @@ import { MedicationListScreen } from '../screens/medications/MedicationListScree
 import { AddMedicationScreen } from '../screens/medications/AddMedicationScreen';
 import { NoteEditorScreen } from '../screens/notes/NoteEditorScreen';
 import { SymptomAssistantScreen } from '../screens/assistant/SymptomAssistantScreen';
+import { AccountInfoScreen } from '../screens/settings/AccountInfoScreen';
+import { AppSettingsScreen } from '../screens/settings/AppSettingsScreen';
+import { SupportScreen } from '../screens/settings/SupportScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -42,6 +45,9 @@ export type RootStackParamList = {
   AddMedication: { catId: string };
   NoteEditor: { noteId?: string; catId?: string };
   SymptomAssistant: { catId?: string } | undefined;
+  AccountInfo: undefined;
+  AppSettings: undefined;
+  Support: undefined;
 };
 
 export type AuthStackParamList = {
@@ -196,6 +202,9 @@ export const Navigation = () => {
             <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'İlaç Ekle' }} />
             <Stack.Screen name="NoteEditor" component={NoteEditorScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SymptomAssistant" component={SymptomAssistantScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="AccountInfo" component={AccountInfoScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

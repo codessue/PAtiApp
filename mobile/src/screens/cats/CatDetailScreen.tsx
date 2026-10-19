@@ -67,7 +67,7 @@ export const CatDetailScreen = () => {
 
   const handleDelete = () => {
     Alert.alert(
-      'Kediyi Sil',
+      'Dostu Sil',
       `${cat.name}'ı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
       [
         { text: 'İptal', style: 'cancel' },
@@ -235,7 +235,7 @@ export const CatDetailScreen = () => {
                 </View>
               </View>
 
-              <Button title="Kediyi Sil" variant="danger" onPress={handleDelete} />
+              <Button title="Dostu Sil" variant="danger" onPress={handleDelete} />
             </View>
           )}
 

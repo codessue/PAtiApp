@@ -17,6 +17,7 @@ import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { openSupportEmail } from '../../utils/supportEmail';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,9 +38,20 @@ export const LoginScreen: React.FC<Props> = ({ onNavigateToRegister }) => {
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, getValues, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  // Uygulamada otomatik şifre sıfırlama yok; talebi destek adresine
+  // yönlendiriyoruz. Formda yazılıysa e-postayı da taşıyoruz ki hesap
+  // eşleştirmesi için ayrıca sorulmasın.
+  const handleForgotPassword = () =>
+    openSupportEmail({
+      subject: 'Pati · Şifre Sıfırlama Talebi',
+      intro:
+        'Merhaba, şifremi unuttum. Hesabıma yeniden erişebilmem için yardımınızı rica ediyorum.',
+      accountEmail: getValues('email'),
+    });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -112,7 +124,15 @@ export const LoginScreen: React.FC<Props> = ({ onNavigateToRegister }) => {
             )}
           />
 
-          <TouchableOpacity style={styles.forgotLink} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.forgotLink}
+            activeOpacity={0.7}
+            onPress={handleForgotPassword}
+            accessibilityRole="button"
+            // Metin yüksekliği tek başına ~20pt; Apple'ın 44pt'lik minimum
+            // dokunma hedefine çıkarmak için çevresini genişletiyoruz.
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+          >
             <Text style={styles.forgotText}>Şifremi Unuttum</Text>
           </TouchableOpacity>
 

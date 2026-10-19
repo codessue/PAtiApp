@@ -19,7 +19,7 @@ export const Splash = () => (
         <PawPrint size={48} color={colors.primary} fill={colors.primary} />
       </View>
       <Text style={styles.title}>Pati</Text>
-      <Text style={styles.tagline}>Kedinizin sağlığı, elinizde.</Text>
+      <Text style={styles.tagline}>Dostunuzun sağlığı, elinizde.</Text>
       <Image source={require('../../../assets/watercolor-cat.png')} style={styles.catCircle} />
     </View>
   </View>

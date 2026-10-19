@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { Note } from '../types';
 import { scheduleNoteReminder, cancelNoteReminder } from '../utils/notifications';
+import { deletePersistedPhoto } from '../utils/photoStorage';
 import { useAuthStore } from './authStore';
 
 // Device-only persistence (per UI scope: notes never leave the phone).
@@ -62,6 +63,20 @@ const cleanupLegacyNotes = async (): Promise<void> => {
     }
   }
   await SecureStore.deleteItemAsync(LEGACY_INDEX_KEY);
+};
+
+// A note being edited may not be in memory yet (deep link, cold start). Fall
+// back to the stored copy so an edit never turns into a second note.
+const findNote = async (uid: string, id: string, inMemory: Note[]): Promise<Note | undefined> => {
+  const local = inMemory.find((n) => n.id === id);
+  if (local) return local;
+  const raw = await SecureStore.getItemAsync(itemKey(uid, id));
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw) as Note;
+  } catch {
+    return undefined;
+  }
 };
 
 // Sort: pinned first, then most-recently-updated.
@@ -129,20 +144,25 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     if (!uid) throw new Error('Not kaydetmek için giriş yapmalısınız.');
 
     const now = new Date().toISOString();
-    const existing = input.id ? get().notes.find((n) => n.id === input.id) : undefined;
+    // Düzenlenen not bellekte yoksa (ör. bildirimden doğrudan açılış) diskten
+    // oku — yoksa aynı not ikinci kez kaydedilir ve kopyası oluşurdu.
+    const existing = input.id ? await findNote(uid, input.id, get().notes) : undefined;
+    // Yeni notun kimliği bildirimden önce üretilir; "pending" gönderilirse
+    // bildirime dokunulduğunda hangi notun açılacağı bilinemezdi.
+    const id = existing?.id ?? input.id ?? newId();
 
     // Re-schedule the reminder whenever we save: cancel the previous one, then
     // schedule a fresh notification if a future date is set.
     await cancelNoteReminder(existing?.notificationId);
     const notificationId = await scheduleNoteReminder({
-      id: input.id ?? 'pending',
+      id,
       title: input.title,
       body: input.body,
       reminderAt: input.reminderAt,
     });
 
     const note: Note = {
-      id: existing?.id ?? newId(),
+      id,
       catId: input.catId,
       category: input.category,
       title: input.title.trim(),
@@ -157,9 +177,12 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     };
 
     await SecureStore.setItemAsync(itemKey(uid, note.id), JSON.stringify(note));
-    if (!existing) {
-      const ids = await readIndex(uid);
-      await writeIndex(uid, [note.id, ...ids]);
+    const ids = await readIndex(uid);
+    if (!ids.includes(note.id)) await writeIndex(uid, [note.id, ...ids]);
+
+    // Fotoğraf değiştiyse ya da kaldırıldıysa eskisini diskten sil.
+    if (existing?.photoUri && existing.photoUri !== note.photoUri) {
+      deletePersistedPhoto(existing.photoUri);
     }
 
     const others = get().notes.filter((n) => n.id !== note.id);
@@ -170,8 +193,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   deleteNote: async (id) => {
     const uid = currentUid();
     if (!uid) return;
-    const existing = get().notes.find((n) => n.id === id);
+    const existing = await findNote(uid, id, get().notes);
     await cancelNoteReminder(existing?.notificationId);
+    deletePersistedPhoto(existing?.photoUri);
     await SecureStore.deleteItemAsync(itemKey(uid, id));
     const ids = (await readIndex(uid)).filter((x) => x !== id);
     await writeIndex(uid, ids);
@@ -181,11 +205,14 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   togglePin: async (id) => {
     const uid = currentUid();
     if (!uid) return;
-    const existing = get().notes.find((n) => n.id === id);
+    const existing = await findNote(uid, id, get().notes);
     if (!existing) return;
     const updated: Note = { ...existing, pinned: !existing.pinned, updatedAt: new Date().toISOString() };
     await SecureStore.setItemAsync(itemKey(uid, id), JSON.stringify(updated));
-    set({ notes: sortNotes(get().notes.map((n) => (n.id === id ? updated : n))) });
+    const known = get().notes.some((n) => n.id === id);
+    set({
+      notes: sortNotes(known ? get().notes.map((n) => (n.id === id ? updated : n)) : [updated, ...get().notes]),
+    });
   },
 }));
 
@@ -198,6 +225,7 @@ export const clearNotesForUser = async (uid: string): Promise<void> => {
       try {
         const note = JSON.parse(raw) as Note;
         await cancelNoteReminder(note.notificationId);
+        deletePersistedPhoto(note.photoUri);
       } catch {
         // bozuk kayıt — yine de sil
       }

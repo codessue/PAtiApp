@@ -23,32 +23,60 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Sunucu her yenilemede refresh token'ı döndürüyor (rotasyon). Ana sayfa gibi
+// ekranlar aynı anda birkaç istek attığı için erişim tokenı dolduğunda hepsi
+// birden 401 alır; her biri ayrı ayrı yenilemeye kalkarsa ilki tokenı çevirir,
+// diğerleri "geçersiz token" alıp kullanıcıyı boş yere çıkışa düşürürdü.
+// Bu yüzden aynı anda yalnızca tek bir yenileme isteği çalışır, diğerleri onu bekler.
+let refreshInFlight: Promise<string> | null = null;
+
+const refreshAccessToken = (): Promise<string> => {
+  refreshInFlight ??= (async () => {
+    const refreshToken = await SecureStore.getItemAsync('refreshToken');
+    if (!refreshToken) throw new Error('No refresh token');
+
+    const { data } = await axios.post<ApiResponse<{
+      accessToken: string;
+      refreshToken: string;
+    }>>(`${BASE_URL}/auth/refresh`, { refreshToken });
+
+    if (!data.data?.accessToken) throw new Error('Refresh response missing tokens');
+
+    await SecureStore.setItemAsync('accessToken', data.data.accessToken);
+    await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
+    return data.data.accessToken;
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+
+  return refreshInFlight;
+};
+
+const endSession = async () => {
+  await SecureStore.deleteItemAsync('accessToken');
+  await SecureStore.deleteItemAsync('refreshToken');
+  onSessionExpired?.();
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
-    const original = error.config as typeof error.config & { _retry?: boolean };
+    const original = error.config as
+      | (NonNullable<AxiosError['config']> & { _retry?: boolean })
+      | undefined;
 
-    if (error.response?.status === 401 && !original._retry) {
+    // Yenileme isteğinin kendisi 401 alırsa tekrar yenilemeye çalışma.
+    const isRefreshCall = original?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && original && !original._retry && !isRefreshCall) {
       original._retry = true;
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
-
-        const { data } = await axios.post<ApiResponse<{
-          accessToken: string;
-          refreshToken: string;
-        }>>(`${BASE_URL}/auth/refresh`, { refreshToken });
-
-        if (data.data) {
-          await SecureStore.setItemAsync('accessToken', data.data.accessToken);
-          await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
-          original.headers!.Authorization = `Bearer ${data.data.accessToken}`;
-          return api(original);
-        }
+        const accessToken = await refreshAccessToken();
+        original.headers = original.headers ?? {};
+        original.headers.Authorization = `Bearer ${accessToken}`;
+        return await api(original);
       } catch {
-        await SecureStore.deleteItemAsync('accessToken');
-        await SecureStore.deleteItemAsync('refreshToken');
-        onSessionExpired?.();
+        await endSession();
       }
     }
     return Promise.reject(error);
@@ -109,6 +137,9 @@ export const medicationsApi = {
   update: (catId: string, id: string, data: unknown) =>
     api.put(`/cats/${catId}/medications/${id}`, data),
   delete: (catId: string, id: string) => api.delete(`/cats/${catId}/medications/${id}`),
-  logDose: (catId: string, id: string, data: { status: string; notes?: string }) =>
-    api.post(`/cats/${catId}/medications/${id}/log`, data),
+  logDose: (
+    catId: string,
+    id: string,
+    data: { status: string; notes?: string; reminderTime?: string },
+  ) => api.post(`/cats/${catId}/medications/${id}/log`, data),
 };

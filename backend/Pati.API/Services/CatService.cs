@@ -26,7 +26,7 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
             .Include(c => c.WeightLogs)
             .Include(c => c.VaccineSchedules)
             .FirstOrDefaultAsync(c => c.Id == catId && c.UserId == userId)
-            ?? throw new KeyNotFoundException("Kedi bulunamadı.");
+            ?? throw new KeyNotFoundException("Dost bulunamadı.");
 
         return MapToDto(cat);
     }
@@ -55,7 +55,7 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
     public async Task<CatDto> UpdateCatAsync(Guid catId, Guid userId, UpdateCatDto dto)
     {
         var cat = await uow.Cats.FirstOrDefaultAsync(c => c.Id == catId && c.UserId == userId)
-            ?? throw new KeyNotFoundException("Kedi bulunamadı.");
+            ?? throw new KeyNotFoundException("Dost bulunamadı.");
 
         cat.Name = dto.Name;
         cat.Species = NormalizeSpecies(dto.Species, cat.Species);
@@ -76,33 +76,82 @@ public class CatService(IUnitOfWork uow, AppDbContext context, IWebHostEnvironme
     public async Task DeleteCatAsync(Guid catId, Guid userId)
     {
         var cat = await uow.Cats.FirstOrDefaultAsync(c => c.Id == catId && c.UserId == userId)
-            ?? throw new KeyNotFoundException("Kedi bulunamadı.");
+            ?? throw new KeyNotFoundException("Dost bulunamadı.");
 
         cat.DeletedAt = DateTime.UtcNow;
         uow.Cats.Update(cat);
         await uow.SaveChangesAsync();
     }
 
-    public async Task<string> UpdatePhotoAsync(Guid catId, Guid userId, IFormFile photo)
+    private const long MaxPhotoBytes = 8 * 1024 * 1024; // 8 MB
+
+    // Uzantı kullanıcının dosya adından alınırsa ".html"/".svg" gibi bir dosya
+    // yüklenip /uploads altından servis edilebilirdi (depolanmış XSS). Bu yüzden
+    // yalnızca bilinen resim türleri kabul edilir ve uzantı buradan belirlenir.
+    private static readonly Dictionary<string, string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["image/jpeg"] = ".jpg",
+        ["image/jpg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp",
+        ["image/heic"] = ".heic",
+        ["image/heif"] = ".heic",
+    };
+
+    public async Task<string> UpdatePhotoAsync(Guid catId, Guid userId, IFormFile? photo)
+    {
+        if (photo is null || photo.Length == 0)
+            throw new InvalidOperationException("Lütfen bir fotoğraf seçin.");
+        if (photo.Length > MaxPhotoBytes)
+            throw new InvalidOperationException("Fotoğraf çok büyük (en fazla 8 MB).");
+        if (!AllowedImageTypes.TryGetValue(photo.ContentType ?? string.Empty, out var extension))
+            throw new InvalidOperationException("Yalnızca JPG, PNG, WEBP veya HEIC fotoğraf yükleyebilirsiniz.");
+
         var cat = await uow.Cats.FirstOrDefaultAsync(c => c.Id == catId && c.UserId == userId)
-            ?? throw new KeyNotFoundException("Kedi bulunamadı.");
+            ?? throw new KeyNotFoundException("Dost bulunamadı.");
 
         var uploadPath = Path.Combine(env.WebRootPath ?? "wwwroot", "uploads", "cats");
         Directory.CreateDirectory(uploadPath);
 
-        var fileName = $"{catId}_{Guid.NewGuid()}{Path.GetExtension(photo.FileName)}";
+        var fileName = $"{catId}_{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(uploadPath, fileName);
 
-        using var stream = new FileStream(filePath, FileMode.Create);
-        await photo.CopyToAsync(stream);
+        await using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await photo.CopyToAsync(stream);
+        }
+
+        var previousPhoto = cat.PhotoUrl;
 
         cat.PhotoUrl = $"/uploads/cats/{fileName}";
         cat.UpdatedAt = DateTime.UtcNow;
         uow.Cats.Update(cat);
         await uow.SaveChangesAsync();
 
+        // Kayıt başarılı olduktan sonra eski dosyayı temizle — yoksa her
+        // güncellemede diskte artık dosya birikiyordu.
+        DeletePreviousPhoto(previousPhoto);
+
         return cat.PhotoUrl;
+    }
+
+    private void DeletePreviousPhoto(string? photoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(photoUrl)) return;
+        try
+        {
+            var segments = photoUrl.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0 || segments.Any(seg => seg == "..")) return;
+
+            var root = Path.GetFullPath(env.WebRootPath ?? "wwwroot");
+            var path = Path.GetFullPath(Path.Combine([root, .. segments]));
+            if (!path.StartsWith(root, StringComparison.Ordinal)) return;
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // en-iyi-çaba
+        }
     }
 
     private static CatDto MapToDto(Cat cat)

@@ -21,15 +21,19 @@ export const useUpcomingVaccines = (days = 30) =>
     },
   });
 
+// Aşı değişiklikleri üç yeri etkiler: o dostun listesi, ana sayfadaki yaklaşan
+// aşılar ve dost kartındaki "sonraki aşı" özeti.
+const invalidateVaccines = (qc: ReturnType<typeof useQueryClient>, catId: string) => {
+  qc.invalidateQueries({ queryKey: ['vaccines', catId] });
+  qc.invalidateQueries({ queryKey: ['vaccines', 'upcoming'] });
+  qc.invalidateQueries({ queryKey: ['cats'] });
+};
+
 export const useCreateVaccine = (catId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<VaccineSchedule>) => vaccinesApi.create(catId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vaccines', catId] });
-      qc.invalidateQueries({ queryKey: ['vaccines', 'upcoming'] });
-      qc.invalidateQueries({ queryKey: ['cats'] });
-    },
+    onSuccess: () => invalidateVaccines(qc, catId),
   });
 };
 
@@ -38,10 +42,7 @@ export const useUpdateVaccine = (catId: string) => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<VaccineSchedule> }) =>
       vaccinesApi.update(catId, id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vaccines', catId] });
-      qc.invalidateQueries({ queryKey: ['vaccines', 'upcoming'] });
-    },
+    onSuccess: () => invalidateVaccines(qc, catId),
   });
 };
 
@@ -49,6 +50,8 @@ export const useDeleteVaccine = (catId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => vaccinesApi.delete(catId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vaccines', catId] }),
+    // Silinen aşı, tazelenmediği için ana sayfadaki "yaklaşan aşı" kartında ve
+    // dost kartındaki sonraki-aşı bilgisinde görünmeye devam ediyordu.
+    onSuccess: () => invalidateVaccines(qc, catId),
   });
 };

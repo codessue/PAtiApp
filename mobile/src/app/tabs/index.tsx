@@ -14,7 +14,7 @@ import { Bell, Check, ChevronRight, Pill, Plus, Syringe, WifiOff } from 'lucide-
 import { RootStackParamList } from '../Navigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useUpcomingVaccines } from '../../hooks/useVaccines';
-import { useTodayMedications } from '../../hooks/useMedications';
+import { useLogTodayDose, useTodayMedications } from '../../hooks/useMedications';
 import { useCats } from '../../hooks/useCats';
 import { useNotesStore } from '../../stores/notesStore';
 import { colors } from '../../constants/colors';
@@ -38,6 +38,7 @@ export const HomeScreen = () => {
   const { data: cats, isError: catsError, refetch: refetchCats } = useCats();
   const { data: upcoming, refetch: refetchVaccines, isRefetching: v_refreshing } = useUpcomingVaccines(30);
   const { data: todayMeds, refetch: refetchMeds, isRefetching: m_refreshing } = useTodayMedications();
+  const { mutate: logDose, isPending: loggingDose } = useLogTodayDose();
   const { notes, loaded: notesLoaded, load: loadNotes } = useNotesStore();
 
   useEffect(() => { if (!notesLoaded) loadNotes(); }, [notesLoaded, loadNotes]);
@@ -159,7 +160,11 @@ export const HomeScreen = () => {
       <View>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Bugünkü İlaçlar</Text>
-          {totalMeds > 0 && <Text style={styles.seeAll}>Tümünü Gör</Text>}
+          {totalMeds > 0 && (
+            <TouchableOpacity onPress={() => nav.navigate('Health' as never)} activeOpacity={0.7}>
+              <Text style={styles.seeAll}>Tümünü Gör</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {!todayMeds || todayMeds.length === 0 ? (
@@ -182,13 +187,31 @@ export const HomeScreen = () => {
                     <Text style={styles.medName} numberOfLines={1}>{med.medicationName}</Text>
                     <Text style={styles.medMeta} numberOfLines={1}>{med.catName} • {med.reminderTime}</Text>
                   </View>
-                  {done ? (
-                    <View style={styles.medCheckDone}>
-                      <Check size={16} color={colors.secondaryForeground} strokeWidth={3} />
-                    </View>
-                  ) : (
-                    <View style={styles.medCheckPending} />
-                  )}
+                  {/* Kutucuk daha önce salt görseldi — dokunulunca doz "verildi"
+                      olarak işaretleniyor (aynı ilacın diğer saatleri etkilenmez). */}
+                  <TouchableOpacity
+                    disabled={done || loggingDose}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={done ? 'Verildi olarak işaretlendi' : 'Verildi olarak işaretle'}
+                    onPress={() =>
+                      logDose({
+                        catId: med.catId,
+                        medicationId: med.medicationId,
+                        status: 'given',
+                        reminderTime: med.reminderTime,
+                      })
+                    }
+                  >
+                    {done ? (
+                      <View style={styles.medCheckDone}>
+                        <Check size={16} color={colors.secondaryForeground} strokeWidth={3} />
+                      </View>
+                    ) : (
+                      <View style={styles.medCheckPending} />
+                    )}
+                  </TouchableOpacity>
                 </View>
               );
             })}

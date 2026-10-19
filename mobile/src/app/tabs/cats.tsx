@@ -26,6 +26,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Cat } from '../../types';
+import { persistPickedPhoto } from '../../utils/photoStorage';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -53,7 +54,7 @@ export const CatsScreen = () => {
       quality: 0.85,
     });
     if (!result.canceled && result.assets.length > 0) {
-      await setCoverUri(result.assets[0].uri);
+      await setCoverUri(persistPickedPhoto(result.assets[0].uri));
     }
   };
 
@@ -115,7 +116,7 @@ export const CatsScreen = () => {
                 <ImagePlus size={26} color={colors.primary} strokeWidth={2} />
               </View>
               <Text style={styles.coverPlaceholderText}>Kapak fotoğrafı ekle</Text>
-              <Text style={styles.coverPlaceholderHint}>Kedilerinle bir anınızı seçin</Text>
+              <Text style={styles.coverPlaceholderHint}>Dostlarınla bir anınızı seçin</Text>
             </View>
           )}
           <View style={styles.coverBadge}>

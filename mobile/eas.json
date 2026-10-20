@@ -7,13 +7,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.YOUR-DOMAIN.com/api"
+        "EXPO_PUBLIC_API_URL": "https://pati-api.duckdns.org/api"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.YOUR-DOMAIN.com/api",
+        "EXPO_PUBLIC_API_URL": "https://pati-api.duckdns.org/api",
         "EXPO_PUBLIC_PRIVACY_URL": "https://codessue.github.io/patiapp/privacy.html",
         "EXPO_PUBLIC_SUPPORT_URL": "https://codessue.github.io/patiapp/support.html"
       }

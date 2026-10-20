@@ -12,9 +12,23 @@ DIR=~/patiapp
 
 say() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 
-say "Sunucunun ilk kurulumu bekleniyor (Docker)"
-sudo cloud-init status --wait >/dev/null 2>&1 || true
-until command -v docker >/dev/null 2>&1; do sleep 10; done
+say "Sunucunun ilk kurulumu bekleniyor (Docker, en fazla 5 dakika)"
+for _ in $(seq 1 30); do
+  command -v docker >/dev/null 2>&1 && break
+  sleep 10
+done
+# İlk açılış betiği Docker'ı kuramadıysa burada kur.
+if ! command -v docker >/dev/null 2>&1; then
+  say "Docker kuruluyor"
+  sudo pkill -f get.docker.com >/dev/null 2>&1 || true
+  curl -fsSL https://get.docker.com | sudo sh
+fi
+# Güvenlik duvarı kuralları ilk açılışta eklenmediyse ekle.
+for port in 80 443; do
+  sudo iptables -C INPUT -p tcp --dport "$port" -m state --state NEW -j ACCEPT 2>/dev/null \
+    || sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+done
+sudo netfilter-persistent save >/dev/null 2>&1 || true
 
 say "Kod indiriliyor ($REF)"
 if [ -d "$DIR/.git" ]; then

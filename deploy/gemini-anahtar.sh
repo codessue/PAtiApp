@@ -19,8 +19,9 @@ API=https://generativelanguage.googleapis.com/v1beta
 
 echo
 echo "== Uygulamanın kullandığı model: $MODEL"
-code=$(curl -s -o /tmp/gemini.json -w '%{http_code}' -H "x-goog-api-key: $KEY" -H 'Content-Type: application/json' \
-  -d '{"contents":[{"parts":[{"text":"Sadece OK yaz."}]}]}' "$API/models/$MODEL:generateContent")
+code=$(curl -sS --max-time 60 -o /tmp/gemini.json -w '%{http_code}' -H "x-goog-api-key: $KEY" -H 'Content-Type: application/json' \
+  -d '{"contents":[{"parts":[{"text":"Sadece OK yaz."}]}]}' "$API/models/$MODEL:generateContent" 2>/tmp/gemini.err) \
+  || { echo "Google'a bağlanılamadı:"; cat /tmp/gemini.err; exit 1; }
 echo "HTTP $code"
 if [ "$code" = 200 ]; then
   echo "BAŞARILI: Gemini anahtarı ve model çalışıyor."

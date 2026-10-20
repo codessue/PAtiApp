@@ -17,8 +17,8 @@ say() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 # --- SSH anahtarı (Cloud Shell'de saklanır, buradan sunucuya bağlanılır) ---
 if [ ! -f "$KEY" ]; then
   say "SSH anahtarı oluşturuluyor"
-  mkdir -p ~/.ssh
-  ssh-keygen -t ed25519 -N "" -f "$KEY" -C pati-server >/dev/null
+  mkdir -p ~/.ssh && rm -f "$KEY" "$KEY.pub"
+  ssh-keygen -t rsa -b 4096 -N "" -f "$KEY" -C pati-server >/dev/null
 fi
 
 # --- Ağ (VCN, internet geçidi, 22/80/443 açık) ---

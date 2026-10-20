@@ -39,11 +39,12 @@ else
 fi
 cd "$DIR"
 
+set_env() { sed -i "s|^$1=.*|$1=$2|" .env; }
+# Bekleme sırasında basılmış tuşlar sorulara cevap sanılmasın.
+flush_input() { while read -r -t 0.1 -n 10000 _ 2>/dev/null; do :; done; }
+
 if [ ! -f .env ]; then
-  say "Ayarlar"
-  read -rp "API alan adı (örn. pati-api.duckdns.org): " DOMAIN
-  DOMAIN="${DOMAIN#https://}"; DOMAIN="${DOMAIN%%/*}"
-  read -rp "Gemini API anahtarı (yoksa boş bırakıp Enter): " GEMINI
+  # Şifreler yalnızca ilk kurulumda üretilir; veritabanı onlarla oluşturulur.
   cat > .env <<EOF
 ASPNETCORE_ENVIRONMENT=Production
 DB_HOST=postgres
@@ -54,12 +55,26 @@ DB_PASS=$(openssl rand -hex 24)
 JWT_SECRET=$(openssl rand -hex 48)
 JWT_ISSUER=pati-api
 JWT_AUDIENCE=pati-mobile
-GEMINI_API_KEY=$GEMINI
-API_DOMAIN=$DOMAIN
+GEMINI_API_KEY=
+API_DOMAIN=
 EOF
   chmod 600 .env
 fi
-DOMAIN=$(grep '^API_DOMAIN=' .env | cut -d= -f2)
+
+DOMAIN="${PATI_DOMAIN:-$(grep '^API_DOMAIN=' .env | cut -d= -f2)}"
+until [ -n "$DOMAIN" ]; do
+  flush_input
+  read -rp "API alan adı (örn. pati-api.duckdns.org): " DOMAIN
+done
+DOMAIN="${DOMAIN#https://}"; DOMAIN="${DOMAIN%%/*}"
+set_env API_DOMAIN "$DOMAIN"
+
+if [ -z "$(grep '^GEMINI_API_KEY=' .env | cut -d= -f2)" ]; then
+  flush_input
+  read -rsp "Gemini API anahtarı (yapıştırınca görünmez; yoksa boş bırakıp Enter): " GEMINI; echo
+  [ -n "$GEMINI" ] && set_env GEMINI_API_KEY "$GEMINI"
+fi
+echo "Alan adı: $DOMAIN | Gemini anahtarı: $(grep -q '^GEMINI_API_KEY=.' .env && echo kayıtlı || echo yok)"
 
 MYIP=$(curl -fsS https://api.ipify.org || true)
 DNSIP=$(getent hosts "$DOMAIN" | awk '{print $1; exit}' || true)

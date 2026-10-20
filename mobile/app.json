@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF6F0"
+      "backgroundColor": "#F5EEE4"
     },
     "ios": {
       "supportsTablet": false,
@@ -28,7 +28,7 @@
       "package": "com.durusue.pati",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#FAF6F0",
+        "backgroundColor": "#F5EEE4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },

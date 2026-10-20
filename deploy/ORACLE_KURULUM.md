@@ -22,6 +22,20 @@ Sonuçta API şu adreste çalışır: `https://SENIN-ADIN.duckdns.org/api`
 
 ## 2. Sunucuyu oluştur
 
+> **Kısa yol (önerilir):** 2, 3 ve 6. adımları tek komutla yapar.
+> Konsolda sağ üstteki **>_** (Developer tools → **Cloud Shell**) simgesine bas,
+> açılan terminale şunu yapıştır:
+>
+> ```bash
+> bash <(curl -fsSL https://raw.githubusercontent.com/codessue/PAtiApp/main/deploy/oracle-sunucu-olustur.sh)
+> ```
+>
+> Komut bitince IP adresini ve bağlanma komutunu yazar. Sonra 4. adımdan devam et;
+> sunucuya Cloud Shell'den `ssh -i ~/.ssh/pati ubuntu@IP` ile bağlanırsın.
+
+**Elle oluşturmak istersen:**
+
+
 1. Menü → **Compute → Instances → Create instance**
 2. **Name:** `pati-server`
 3. **Image and shape → Edit:**

@@ -39,7 +39,7 @@ eas login
 eas init                       # gerçek projectId'yi app.json'a yazar
 ```
 - `mobile/eas.json` → `EXPO_PUBLIC_API_URL` değerini gerçek API adresinle değiştir.
-- Paket kimliği `com.patti.app` (iOS + Android). `com.pati.app` başka bir geliştiriciye ait olduğu için kullanılamıyor.
+- Paket kimliği `com.durusue.pati` (iOS + Android). `com.pati.app` başka bir geliştiriciye ait olduğu için kullanılamıyor.
 
 ### 4. Derle ve gönder
 ```bash

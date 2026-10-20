@@ -1,0 +1,8 @@
+{$API_DOMAIN} {
+	encode gzip
+
+	# Hangfire paneli internete açık olmamalı.
+	respond /hangfire* 404
+
+	reverse_proxy api:8080
+}

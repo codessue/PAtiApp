@@ -57,7 +57,7 @@ geçebilirsiniz.
 
 ## İletişim
 
-Sorularınız için: **[e-posta adresinizi buraya ekleyin]**
+Sorularınız için: **durusuegunes@gmail.com**
 
 ---
 

@@ -35,6 +35,13 @@ Sağlık Asistanı yalnızca **bilgilendirme amaçlıdır**; veteriner hekim mua
 yerini tutmaz ve teşhis koymaz. Acil durumlarda lütfen bir veteriner hekime
 başvurun.
 
+## Verilerin Saklandığı Yer
+
+Verileriniz, Oracle Cloud altyapısı üzerinde **Almanya'daki (Frankfurt, Avrupa
+Birliği)** sunucularda saklanır. Bu nedenle kişisel verileriniz, 6698 sayılı
+Kişisel Verilerin Korunması Kanunu'nun yurt dışına aktarıma ilişkin
+hükümlerine uygun olarak yurt dışına aktarılmaktadır.
+
 ## Veri Saklama ve Silme
 
 - Verileriniz, hesabınız aktif olduğu sürece saklanır.

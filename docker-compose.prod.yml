@@ -1,0 +1,75 @@
+# Sunucu (Oracle Cloud vb.) için üretim kurulumu.
+# Kullanım: docker compose -f docker-compose.prod.yml up -d --build
+# Ayrıntılar: deploy/ORACLE_KURULUM.md
+#
+# Geliştirme dosyasından farkları: dışarıya yalnızca Caddy (80/443) açılır,
+# veritabanı/Redis/API portları internete kapalıdır, pgAdmin yoktur.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend/Pati.API
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Gemini__ApiKey: ${GEMINI_API_KEY}
+    volumes:
+      - api_uploads:/app/wwwroot/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # HTTPS: Let's Encrypt sertifikasını otomatik alır ve yeniler.
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_uploads:
+  caddy_data:
+  caddy_config:

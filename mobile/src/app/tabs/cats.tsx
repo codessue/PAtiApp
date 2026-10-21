@@ -24,6 +24,7 @@ import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { CatCard } from '../../components/cats/CatCard';
 import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Cat } from '../../types';
 import { persistPickedPhoto } from '../../utils/photoStorage';
@@ -130,7 +131,7 @@ export const CatsScreen = () => {
           <ErrorState onRetry={refetch} retrying={isRefetching} />
         ) : total === 0 ? (
           <EmptyState
-            image={require('../../../assets/cat-walk.png')}
+            image={illustrations.dostlar}
             title="Henüz dost eklemedin"
             description="İlk dostunu ekleyerek sağlık takibine başla."
             actionLabel="Dost Ekle"

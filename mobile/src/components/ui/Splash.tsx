@@ -1,9 +1,11 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PawPrint } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { fonts } from '../../constants/typography';
+import { illustrations } from '../../constants/illustrations';
 
 // §4.1 Splash. Shown as the loading fallback while fonts/auth bootstrap.
 export const Splash = () => (
@@ -20,7 +22,12 @@ export const Splash = () => (
       </View>
       <Text style={styles.title}>Pati</Text>
       <Text style={styles.tagline}>Dostunuzun sağlığı, elinizde.</Text>
-      <Image source={require('../../../assets/watercolor-cat.png')} style={styles.catCircle} />
+      <Image
+        source={illustrations.dostlar.source}
+        style={[styles.friends, { aspectRatio: illustrations.dostlar.ratio }]}
+        contentFit="contain"
+        autoplay
+      />
     </View>
   </View>
 );
@@ -45,12 +52,13 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: fonts.serif, fontSize: 48, color: colors.primary, marginTop: 8, letterSpacing: -1 },
   tagline: { fontFamily: fonts.sans, fontSize: 18, color: colors.mutedForeground },
-  catCircle: {
-    width: 256,
-    height: 256,
-    borderRadius: 128,
+  // Yürüyen kedi, köpek ve uçan kuş (hareketli).
+  friends: {
+    width: 280,
+    borderRadius: 24,
     borderWidth: 4,
     borderColor: colors.card,
+    backgroundColor: colors.card,
     marginTop: 16,
   },
 });

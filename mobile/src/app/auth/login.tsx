@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,6 +20,8 @@ import { openSupportEmail } from '../../utils/supportEmail';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Image } from 'expo-image';
+import { illustrations } from '../../constants/illustrations';
 
 const schema = z.object({
   email: z.string().min(1, 'Email zorunludur').email('Geçerli bir email girin'),
@@ -83,7 +84,11 @@ export const LoginScreen: React.FC<Props> = ({ onNavigateToRegister }) => {
 
         {/* Watercolor banner (§5). */}
         <View style={styles.banner}>
-          <Image source={require('../../../assets/watercolor-cat.png')} style={styles.bannerImage} resizeMode="cover" />
+          <Image
+            source={illustrations.girisKedi.source}
+            style={[styles.bannerImage, { aspectRatio: illustrations.girisKedi.ratio }]}
+            contentFit="cover"
+          />
         </View>
 
         <Text style={styles.title}>Giriş Yap</Text>
@@ -160,14 +165,14 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   brandName: { fontFamily: fonts.serif, fontSize: 24, color: colors.primary },
   banner: {
-    height: 192,
     borderRadius: radius['3xl'],
     backgroundColor: 'rgba(212,165,160,0.20)',
     overflow: 'hidden',
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
   },
-  bannerImage: { width: '100%', height: 192 },
+  // Görselin kendi oranı korunur; hiçbir ekran genişliğinde kedi kesilmez.
+  bannerImage: { width: '100%' },
   title: { fontFamily: fonts.serif, fontSize: 30, color: colors.foreground, letterSpacing: -0.6 },
   subtitle: { fontFamily: fonts.sans, fontSize: 16, color: colors.mutedForeground, marginTop: spacing.xs, lineHeight: 24 },
   form: { marginTop: spacing.xl },

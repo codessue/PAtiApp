@@ -23,6 +23,7 @@ import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { getNoteCategory } from '../../constants/noteCategories';
 import { getMood } from '../../constants/moods';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { Note } from '../../types';
 import { formatDate, formatRelativeDateTime } from '../../utils/dateHelpers';
 import {
@@ -207,7 +208,7 @@ export const NotesScreen = () => {
         {/* Content */}
         {loaded && notes.length === 0 ? (
           <EmptyState
-            emoji="📔"
+            image={illustrations.kusUcuyor}
             title="Günlüğün henüz boş"
             description="İlk kaydını ekle — bugün yaşadığınız bir an, bir gözlem ya da hatırlatma."
             actionLabel="İlk Kaydı Ekle"

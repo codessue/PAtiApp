@@ -1,13 +1,15 @@
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { colors } from '../../constants/colors';
-import { fonts, spacing } from '../../constants/typography';
+import { Illustration } from '../../constants/illustrations';
+import { fonts, radius, spacing } from '../../constants/typography';
 import { Button } from './Button';
 
 interface EmptyStateProps {
   emoji?: string;
-  /** Watercolor illustration; takes precedence over `emoji` when provided. */
-  image?: ImageSourcePropType;
+  /** Watercolor illustration (static or animated); takes precedence over `emoji`. */
+  image?: Illustration;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -24,7 +26,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => (
   <View style={styles.container}>
     {image ? (
-      <Image source={image} style={styles.image} resizeMode="contain" />
+      <Image
+        source={image.source}
+        style={[styles.image, { aspectRatio: image.ratio }, image.ratio < 1 && styles.imageTall]}
+        contentFit="contain"
+        autoplay
+      />
     ) : (
       <Text style={styles.emoji}>{emoji}</Text>
     )}
@@ -45,7 +52,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3xl'],
     gap: spacing.md,
   },
-  image: { width: 200, height: 200, marginBottom: spacing.sm },
+  // Width-driven so wide (walking) and tall (sitting) art both fit uncropped.
+  image: { width: 240, borderRadius: radius['3xl'], marginBottom: spacing.sm },
+  imageTall: { width: 150 },
   emoji: { fontSize: 56 },
   title: {
     fontFamily: fonts.serif,

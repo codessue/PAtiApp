@@ -28,6 +28,7 @@ import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { getExpenseCategory, getExpensePlace } from '../../constants/expenseCategories';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
@@ -111,7 +112,7 @@ export const ExpenseListScreen = () => {
           <ActivityIndicator color={colors.primary} style={{ marginTop: spacing['2xl'] }} />
         ) : !expenses || expenses.length === 0 ? (
           <EmptyState
-            emoji="🧾"
+            image={illustrations.kediYuruyen}
             title="Henüz harcama yok"
             description="Mama, kum, oyuncak, veteriner… Market, petshop ya da internetten aldıklarını fişiyle birlikte kaydet; toplam ve kalan borç otomatik hesaplansın."
             actionLabel="Harcama Ekle"

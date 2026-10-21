@@ -19,6 +19,7 @@ import { colors } from '../../constants/colors';
 import { fonts, radius, spacing } from '../../constants/typography';
 import { WeightChart } from '../../components/weight/WeightChart';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { Card } from '../../components/ui/Card';
 import { formatDate } from '../../utils/dateHelpers';
 import { Header } from '../../components/ui/Header';
@@ -61,7 +62,7 @@ export const WeightChartScreen = () => {
           <ActivityIndicator color={colors.primary} style={{ marginTop: spacing['2xl'] }} />
         ) : !logs || logs.length === 0 ? (
           <EmptyState
-            image={require('../../../assets/cat-walk.png')}
+            image={illustrations.kediOturan}
             title="Henüz kilo kaydı yok"
             description="İlk kilo ölçümünü ekleyin."
             actionLabel="Kilo Ekle"

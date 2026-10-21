@@ -21,6 +21,7 @@ import { Header } from '../../components/ui/Header';
 import { UpcomingVaccineCard } from '../../components/vaccines/UpcomingVaccineCard';
 import { VaccineItem } from '../../components/vaccines/VaccineItem';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -67,7 +68,7 @@ export const VaccineListScreen = () => {
           <ActivityIndicator color={colors.primary} style={{ marginTop: spacing['2xl'] }} />
         ) : !vaccines || vaccines.length === 0 ? (
           <EmptyState
-            image={require('../../../assets/cat-walk.png')}
+            image={illustrations.kediYarabandi}
             title="Henüz aşı kaydı yok"
             description="İlk aşı programını ekleyin."
             actionLabel="Aşı Ekle"

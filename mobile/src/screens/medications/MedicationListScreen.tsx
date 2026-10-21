@@ -19,6 +19,7 @@ import { fonts, radius, spacing } from '../../constants/typography';
 import { Header } from '../../components/ui/Header';
 import { MedicationItem } from '../../components/medications/MedicationItem';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { cancelMedicationNotifications, scheduleMedicationNotifications } from '../../utils/notifications';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -74,7 +75,7 @@ export const MedicationListScreen = () => {
           <ActivityIndicator color={colors.primary} style={{ marginTop: spacing['2xl'] }} />
         ) : !meds || meds.length === 0 ? (
           <EmptyState
-            image={require('../../../assets/cat-walk.png')}
+            image={illustrations.kopekYuruyor}
             title="Henüz ilaç kaydı yok"
             description="İlk ilaç programını ekleyin."
             actionLabel="İlaç Ekle"

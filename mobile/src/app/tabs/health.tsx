@@ -11,6 +11,7 @@ import { fonts, radius, shadow, spacing } from '../../constants/typography';
 import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { illustrations } from '../../constants/illustrations';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { getSpecies } from '../../constants/species';
 import { getCatAge } from '../../utils/dateHelpers';
@@ -66,7 +67,7 @@ export const HealthScreen = () => {
         <ErrorState onRetry={refetch} retrying={isRefetching} />
       ) : !cats || cats.length === 0 ? (
         <EmptyState
-          image={require('../../../assets/cat-walk.png')}
+          image={illustrations.kediYuruyor}
           title="Henüz dost yok"
           description="Sağlık kayıtlarını görmek için önce bir dost ekleyin."
           actionLabel="Dost Ekle"

@@ -13,7 +13,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Bell, BellRing, Pin, Plus } from 'lucide-react-native';
+import { Bell, BellRing, Pin, Plus, Smartphone } from 'lucide-react-native';
 import { RootStackParamList } from '../Navigation';
 import { DIARY_REMINDER_PREF } from '../../constants/app';
 import { useNotesStore } from '../../stores/notesStore';
@@ -125,6 +125,15 @@ export const NotesScreen = () => {
       >
         <Text style={styles.title}>Günlük</Text>
         <Text style={styles.subtitle}>Anılar, notlar ve hatırlatıcılar</Text>
+
+        {/* Günlük sunucuya gönderilmez; kullanıcı silme/telefon değişikliğinde kaybedeceğini bilsin. */}
+        <View style={styles.deviceNotice}>
+          <Smartphone size={18} color={colors.warning} strokeWidth={2.2} />
+          <Text style={styles.deviceNoticeText}>
+            Günlük kayıtların ve fotoğrafların yalnızca bu telefonda saklanır. Uygulamayı silersen
+            ya da telefon değiştirirsen kaybolur.
+          </Text>
+        </View>
 
         {/* View toggle */}
         <View style={styles.viewToggle}>
@@ -404,6 +413,16 @@ const styles = StyleSheet.create({
   chipIdle: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   chipText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.foreground },
   chipTextActive: { color: colors.primaryForeground },
+
+  deviceNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.warningTint,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  deviceNoticeText: { flex: 1, fontFamily: fonts.sans, fontSize: 13, lineHeight: 18, color: colors.foreground },
 
   reminderPref: {
     flexDirection: 'row',
